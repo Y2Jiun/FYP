@@ -57,6 +57,8 @@ export default function SigninPage() {
         email: user?.email,
       });
       const { userId, role, username } = res.data;
+      console.log("userId from backend:", userId); // Debug log
+      localStorage.setItem("userID", userId); // <-- This is critical!
       console.log(
         "Fetched userId:",
         userId,
@@ -70,9 +72,9 @@ export default function SigninPage() {
 
       // 🚀 Redirect based on role
       if (role === 1) {
-        router.push("/admin/adminprofile");
+        router.push("/admin/updateAgent");
       } else if (role === 2) {
-        router.push("/agent-dashboard");
+        router.push("/agent/agentprofile");
       } else {
         router.push("/user/userprofile");
       }

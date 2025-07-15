@@ -21,13 +21,16 @@ app.post("/login", async (req, res) => {
     }
 
     let userData;
+    let userId;
     snapshot.forEach((doc) => {
       userData = doc.data();
+      userId = doc.id;
+      // break after first (emails should be unique)
+      return;
     });
 
-    // Example role response: 1 = admin, 2 = agent, 3 = user
     return res.json({
-      userId: userData.userId,
+      userId, // Firestore document ID, e.g., "UID1"
       role: userData.roles,
       username: userData.username,
     });

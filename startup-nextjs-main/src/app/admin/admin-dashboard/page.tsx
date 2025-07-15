@@ -1,51 +1,106 @@
 "use client";
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase"; // Your firebase config
-import { doc, getDoc } from "firebase/firestore";
-import SignOutButton from "@/components/signout/SignOutButton";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import AdminHeader from "@/components/Admin/AdminHeader";
 
 export default function AdminDashboardPage() {
-  const [userData, setUserData] = useState(null);
-  const router = useRouter();
+  const [stats, setStats] = useState([
+    { label: "Total Users", value: 0 },
+    { label: "Total Agents", value: 0 },
+    { label: "Total Properties", value: 0 },
+    { label: "Pending Agent Requests", value: 0 },
+  ]);
+  const [loading, setLoading] = useState(true);
+  const [userID, setUserID] = useState("");
+  const [username, setUsername] = useState("");
 
   useEffect(() => {
-    const fetchUser = async () => {
-      // Get the userId from localStorage (set after login)
-      const userId = localStorage.getItem("userId");
-      if (!userId) {
-        setUserData(null);
-        return;
-      }
-      const docRef = doc(db, "users", userId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setUserData(docSnap.data());
-      } else {
-        setUserData(null);
+    const fetchStats = async () => {
+      setLoading(true);
+      try {
+        const usersCol = collection(db, "users");
+        const usersSnapshot = await getDocs(usersCol);
+        let userCount = 0;
+        let agentCount = 0;
+        let pendingAgentRequests = 0;
+        usersSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.roles === 3) userCount++;
+          if (data.roles === 2) agentCount++;
+          if (data.agentRequest === 1) pendingAgentRequests++;
+        });
+        setStats([
+          { label: "Total Users", value: userCount },
+          { label: "Total Agents", value: agentCount },
+          { label: "Total Properties", value: 0 },
+          { label: "Pending Agent Requests", value: pendingAgentRequests },
+        ]);
+      } catch (err) {
+        // handle error
+      } finally {
+        setLoading(false);
       }
     };
-    fetchUser();
+    fetchStats();
+  }, []);
+
+  useEffect(() => {
+    const fetchUsername = async () => {
+      const id = localStorage.getItem("userID");
+      setUserID(id || "");
+      if (!id) return;
+      try {
+        const userRef = doc(db, "users", id);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          setUsername(userSnap.data().username || "");
+        }
+      } catch (err) {
+        // handle error
+      }
+    };
+    fetchUsername();
   }, []);
 
   return (
-    <div>
-      <h1>Admin Dashboard</h1>
-      {userData && (
-        <div>
-          <p>User ID: {userData.userID}</p>
-          <p>Username: {userData.username}</p>
-          {/* ...other fields */}
+    <>
+      <AdminHeader />
+      <div className="container mx-auto py-10">
+        <div className="mt-8 mb-8 flex items-center gap-4">
+          <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+          {username ? (
+            <span className="text-primary text-xl font-semibold">
+              Welcome, {username}
+            </span>
+          ) : (
+            userID && (
+              <span className="text-primary text-xl font-semibold">
+                Welcome, {userID}
+              </span>
+            )
+          )}
         </div>
-      )}
-      <Link href="/admin/adminprofile">
-        <button className="mt-4 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
-          Go to Admin Profile
-        </button>
-      </Link>
-      {/* Place the sign out button here */}
-      <SignOutButton />
-    </div>
+        {loading ? (
+          <div className="text-lg text-gray-300">Loading stats...</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {stats.map((stat) => (
+              <div
+                key={stat.label}
+                className="flex flex-col items-center justify-center rounded-xl border border-gray-700 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6 shadow-lg"
+              >
+                <div className="text-primary mb-2 text-4xl font-extrabold">
+                  {stat.value}
+                </div>
+                <div className="text-lg font-medium text-gray-200">
+                  {stat.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

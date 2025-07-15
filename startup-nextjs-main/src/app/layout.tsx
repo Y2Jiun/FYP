@@ -24,16 +24,25 @@ export default function RootLayout({
     // add more paths here
   ];
 
+  const hideHeaderPaths = [
+    "/admin/", // Hide header for all admin pages
+    // add more if needed
+  ];
+
   const hideHeaderFooter = hideHeaderFooterPaths.some((path) =>
     pathname.startsWith(path),
   );
+
+  const hideHeader =
+    hideHeaderFooter ||
+    hideHeaderPaths.some((path) => pathname.startsWith(path));
 
   return (
     <html suppressHydrationWarning lang="en">
       <head />
       <body className={`bg-[#FCFCFC] dark:bg-black ${inter.className}`}>
         <Providers>
-          {!hideHeaderFooter && <Header />}
+          {!hideHeader && <Header />}
           {children}
           {!hideHeaderFooter && <Footer />}
           {!hideHeaderFooter && <ScrollToTop />}

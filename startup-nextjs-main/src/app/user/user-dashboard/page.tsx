@@ -44,8 +44,21 @@ export default function UserDashboardPage() {
           Go to User Profile
         </button>
       </Link>
-      {/* Place the sign out button here */}
-      <SignOutButton />
+      {/* Place the profile picture and sign out button here */}
+      <div className="mt-6 flex items-center gap-4">
+        <div className="border-primary flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 bg-gray-100">
+          {userData && userData.profilePic ? (
+            <img
+              src={userData.profilePic}
+              alt="Profile"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="text-xl text-gray-400">👤</span>
+          )}
+        </div>
+        <SignOutButton />
+      </div>
     </div>
   );
 }
