@@ -10,6 +10,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 const adminMenu = [
   { title: "Dashboard", path: "/admin/admin-dashboard" },
   { title: "Update Agent", path: "/admin/updateAgent" },
+  { title: "Content Management", path: "/admin/adminContentManagement" },
 ];
 
 export default function AdminHeader() {

@@ -72,7 +72,7 @@ export default function SigninPage() {
 
       // 🚀 Redirect based on role
       if (role === 1) {
-        router.push("/admin/updateAgent");
+        router.push("/admin/admin-dashboard");
       } else if (role === 2) {
         router.push("/agent/agentprofile");
       } else {
