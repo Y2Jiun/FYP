@@ -6,6 +6,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Add this for notification API
+const notificationRoutes = require("./notification");
+app.use("/api", notificationRoutes);
+
 // 🔐 POST /login → check email & return role
 app.post("/login", async (req, res) => {
   const { email } = req.body;
