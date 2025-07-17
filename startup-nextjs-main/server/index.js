@@ -10,6 +10,10 @@ app.use(express.json());
 const notificationRoutes = require("./notification");
 app.use("/api", notificationRoutes);
 
+// Add property verification API
+const propertyVerificationRoutes = require("./propertyVerification");
+app.use("/api/property-verification", propertyVerificationRoutes);
+
 // 🔐 POST /login → check email & return role
 app.post("/login", async (req, res) => {
   const { email } = req.body;
@@ -92,6 +96,9 @@ app.post("/signup", async (req, res) => {
     return res.status(500).json({ error: err.message || "Signup failed" });
   }
 });
+
+const forgotPasswordRoutes = require("./forgotPassword");
+app.use("/api", forgotPasswordRoutes);
 
 const PORT = 4000;
 app.listen(PORT, () =>

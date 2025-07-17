@@ -12,6 +12,7 @@ import {
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { auth } from "@/lib/firebase"; // your firebase auth instance
+import { useRouter } from "next/navigation";
 
 async function checkCurrentPassword(email, currentPassword) {
   const user = auth.currentUser;
@@ -41,6 +42,7 @@ export default function AdminProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordSectionError, setPasswordSectionError] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -90,24 +92,20 @@ export default function AdminProfilePage() {
         newErrors.contact = "Contact number must be between 9 and 12 digits.";
       }
     }
-    // Password fields: at least 6 chars, must include number, letter, symbol
-    if (editMode) {
+    // Only validate password fields if user is attempting to change password
+    const wantsToChangePassword =
+      currentPassword || newPassword || confirmPassword;
+    if (editMode && wantsToChangePassword) {
       let passwordError = "";
-      if (!currentPassword) {
-        passwordError = "Current password is required.";
-      } else if (!passwordRegex.test(currentPassword)) {
+      if (currentPassword && !passwordRegex.test(currentPassword)) {
         passwordError =
           "Current password must be at least 6 characters and include a number, a letter, and a symbol.";
       }
-      if (!newPassword) {
-        passwordError = "New password is required.";
-      } else if (!passwordRegex.test(newPassword)) {
+      if (newPassword && !passwordRegex.test(newPassword)) {
         passwordError =
           "New password must be at least 6 characters and include a number, a letter, and a symbol.";
       }
-      if (!confirmPassword) {
-        passwordError = "Confirm password is required.";
-      } else if (!passwordRegex.test(confirmPassword)) {
+      if (confirmPassword && !passwordRegex.test(confirmPassword)) {
         passwordError =
           "Confirm password must be at least 6 characters and include a number, a letter, and a symbol.";
       }
@@ -133,8 +131,10 @@ export default function AdminProfilePage() {
     // Run synchronous validation first (except current password check)
     if (!validate()) return;
 
-    // Check current password asynchronously
-    if (editMode) {
+    // Only check current password if user is attempting to change password
+    const wantsToChangePassword =
+      currentPassword || newPassword || confirmPassword;
+    if (editMode && wantsToChangePassword) {
       const email = userData.email;
       const isCurrentPasswordCorrect = await checkCurrentPassword(
         email,
@@ -168,6 +168,35 @@ export default function AdminProfilePage() {
   return (
     <section className="flex min-h-screen items-start justify-center bg-[#1a1e26] pt-8">
       <div className="w-full p-0">
+        {/* Back Icon */}
+        <button
+          className="mb-4 ml-2 flex h-12 w-12 items-center justify-center rounded-full bg-blue-300 shadow-lg transition-colors duration-200 hover:bg-blue-400"
+          onClick={() => router.push("/admin/admin-dashboard")}
+          title="Back to Dashboard"
+        >
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 28 28"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M18 7L11 14L18 21"
+              stroke="#fff"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M11 14H23"
+              stroke="#fff"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
         <h2 className="from-primary mt-0 mb-4 bg-gradient-to-r to-blue-500 bg-clip-text text-center text-5xl font-extrabold text-transparent drop-shadow-lg">
           Admin Profile
         </h2>
