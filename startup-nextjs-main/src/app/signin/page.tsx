@@ -26,6 +26,14 @@ export default function SigninPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState(""); // Add if not present
 
+  // Add this at the top of the component
+  // Allow Google Sign-In on localhost, 127.0.0.1, and 10.79.224.123
+  const isLocalhost =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname === "10.79.224.123");
+
   const passwordRegex =
     /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{6,}$/;
 
@@ -140,10 +148,18 @@ export default function SigninPage() {
                 <p className="text-body-color mb-11 text-center text-base font-medium">
                   Login to your account for a faster checkout.
                 </p>
+                {/* Google Sign-In Button */}
+                {!isLocalhost && (
+                  <div className="mb-4 text-center text-red-500">
+                    Google Sign-In is only allowed on localhost or 10.79.224.123
+                    for this app.
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}
                   className="mb-6 flex w-full items-center justify-center gap-3 rounded-lg border border-blue-500 bg-gradient-to-r from-[#23272f] to-[#181c23] py-3 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:scale-[1.03] hover:from-[#2d3340] hover:to-[#23272f] hover:shadow-xl focus:outline-none"
+                  disabled={!isLocalhost}
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <g>
@@ -314,12 +330,12 @@ export default function SigninPage() {
                       </label>
                     </div>
                     <div>
-                      <a
-                        href="#0"
+                      <Link
+                        href="/forgot-password"
                         className="text-primary text-sm font-medium hover:underline"
                       >
                         Forgot Password?
-                      </a>
+                      </Link>
                     </div>
                   </div>
                   <div className="mb-6">

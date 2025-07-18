@@ -100,6 +100,9 @@ app.post("/signup", async (req, res) => {
 const forgotPasswordRoutes = require("./forgotPassword");
 app.use("/api", forgotPasswordRoutes);
 
+const exportDataRoutes = require("./exportData");
+app.use("/api", exportDataRoutes);
+
 const PORT = 4000;
 app.listen(PORT, () =>
   console.log(`✅ Backend running on http://localhost:${PORT}`),
