@@ -91,7 +91,7 @@ export default function SigninPage() {
       if (role === 1) {
         router.push("/admin/admin-dashboard");
       } else if (role === 2) {
-        router.push("/agent/agentprofile");
+        router.push("/agent/agent-dashboard");
       } else {
         router.push("/user/userprofile");
       }
