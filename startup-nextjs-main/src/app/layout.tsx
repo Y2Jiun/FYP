@@ -26,6 +26,7 @@ export default function RootLayout({
 
   const hideHeaderPaths = [
     "/admin/", // Hide header for all admin pages
+    "/agent/",
     // add more if needed
   ];
 

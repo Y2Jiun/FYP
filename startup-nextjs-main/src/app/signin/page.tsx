@@ -126,7 +126,7 @@ export default function SigninPage() {
       if (role === 1) {
         router.push("/admin/admin-dashboard");
       } else if (role === 2) {
-        router.push("/agent/agentprofile");
+        router.push("/agent/agent-dashboard");
       } else {
         router.push("/user/userprofile");
       }
@@ -149,12 +149,6 @@ export default function SigninPage() {
                   Login to your account for a faster checkout.
                 </p>
                 {/* Google Sign-In Button */}
-                {!isLocalhost && (
-                  <div className="mb-4 text-center text-red-500">
-                    Google Sign-In is only allowed on localhost or 10.79.224.123
-                    for this app.
-                  </div>
-                )}
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}

@@ -26,6 +26,8 @@ const adminMenu = [
       },
     ],
   },
+  // Add Report as a top-level menu item
+  { title: "Report", path: "/admin/adminReport" },
 ];
 
 export default function AdminHeader() {

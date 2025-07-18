@@ -88,6 +88,7 @@ app.post("/signup", async (req, res) => {
       contact: "",
       createdDate: new Date(),
       modifyTime: new Date(),
+      agentRequest: 0, // Add this field as a number
     });
 
     return res.json({ message: "Signup successful", userID: customUserId });
