@@ -93,7 +93,7 @@ export default function SigninPage() {
       } else if (role === 2) {
         router.push("/agent/agent-dashboard");
       } else {
-        router.push("/user/userprofile");
+        router.push("/user/user-dashboard");
       }
     } catch (error: any) {
       console.error("Login failed:", error.message);

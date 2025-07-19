@@ -1,8 +1,7 @@
 "use client";
-
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import AgentHeader from "@/components/Agent/agentHeader";
+import UserHeader from "@/components/User/userHeader";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
@@ -22,13 +21,11 @@ interface PropertyDetails {
   agentName?: string;
   createdAt?: string;
   updatedAt?: string;
-  // Add more fields as needed
 }
 
-export default function AgentPropertyDetails() {
+export default function UserPropertyDetails() {
   const [property, setProperty] = useState<PropertyDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
   const router = useRouter();
   const searchParams = useSearchParams();
   const propertyId = searchParams.get("id");
@@ -85,7 +82,6 @@ export default function AgentPropertyDetails() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "verified":
-      case "approved":
         return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
       case "pending":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
@@ -99,7 +95,7 @@ export default function AgentPropertyDetails() {
   if (loading) {
     return (
       <>
-        <AgentHeader />
+        <UserHeader />
         <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
           <div className="text-center">
             <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
@@ -115,7 +111,7 @@ export default function AgentPropertyDetails() {
   if (!property) {
     return (
       <>
-        <AgentHeader />
+        <UserHeader />
         <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
           <div className="text-center">
             <h2 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">
@@ -125,10 +121,10 @@ export default function AgentPropertyDetails() {
               The property you're looking for doesn't exist.
             </p>
             <button
-              onClick={() => router.push("/agent/agentPropertyList")}
+              onClick={() => router.push("/user/userPropertyList")}
               className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
             >
-              Back to Property List
+              Back to My Properties
             </button>
           </div>
         </div>
@@ -138,7 +134,7 @@ export default function AgentPropertyDetails() {
 
   return (
     <>
-      <AgentHeader />
+      <UserHeader />
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto px-4 py-8">
           <div className="mx-auto max-w-3xl">
@@ -159,14 +155,13 @@ export default function AgentPropertyDetails() {
                     property.status.slice(1)}
                 </span>
                 <button
-                  onClick={() => router.push("/agent/agentPropertyList")}
+                  onClick={() => router.push("/user/userPropertyList")}
                   className="rounded-md bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
                 >
                   Back to List
                 </button>
               </div>
             </div>
-
             <div className="rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
               <h3 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
                 Property Information

@@ -2,18 +2,17 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import ThemeToggle from "@/app/agent/agentprofile/ThemeToggle";
+import ThemeToggle from "@/app/user/userprofile/ThemeToggle";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
-const agentMenu = [
-  { title: "Dashboard", path: "/agent/agent-dashboard" },
-  { title: "Properties", path: "/agent/agentPropertyList" },
-  // Remove Notifications from menu bar
+const userMenu = [
+  { title: "Dashboard", path: "/user/user-dashboard" },
+  { title: "My Properties", path: "/user/userPropertyList" },
 ];
 
-export default function AgentHeader() {
+export default function UserHeader() {
   const router = useRouter();
   const [profilePic, setProfilePic] = useState("");
 
@@ -27,6 +26,8 @@ export default function AgentHeader() {
         const docSnap = querySnapshot.docs[0];
         const data = docSnap.data();
         setProfilePic(data.profilePic || "");
+      } else {
+        setProfilePic("");
       }
     };
     fetchProfilePic();
@@ -42,10 +43,7 @@ export default function AgentHeader() {
       <div className="container flex items-center py-4">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <Link
-            href="/agent/agent-dashboard"
-            className="flex items-center gap-2"
-          >
+          <Link href="/user/user-dashboard" className="flex items-center gap-2">
             <Image
               src="/images/logo/logo-2.svg"
               alt="logo"
@@ -64,7 +62,7 @@ export default function AgentHeader() {
         </div>
         {/* Menu bar */}
         <nav className="ml-8 flex gap-8">
-          {agentMenu.map((item) => (
+          {userMenu.map((item) => (
             <Link
               key={item.title}
               href={item.path}
@@ -78,7 +76,7 @@ export default function AgentHeader() {
         <div className="flex-1" />
         {/* Sign out and theme toggle */}
         <div className="ml-4 flex items-center gap-4">
-          <Link href="/agent/agentprofile">
+          <Link href="/user/userprofile">
             <div className="border-primary flex h-14 w-14 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 bg-gray-100 transition-transform hover:scale-105">
               {profilePic ? (
                 <img
@@ -99,7 +97,7 @@ export default function AgentHeader() {
           </button>
           <ThemeToggle />
           {/* Notification icon (moved to right of ThemeToggle) */}
-          <Link href="/agent/agentNotification">
+          <Link href="/user/userNotification">
             <button
               className="ml-2 flex items-center justify-center rounded-full bg-gray-700 p-2 transition hover:bg-gray-600"
               title="Notifications"

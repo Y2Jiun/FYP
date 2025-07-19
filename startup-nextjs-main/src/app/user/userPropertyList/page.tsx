@@ -1,10 +1,8 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import AgentHeader from "@/components/Agent/agentHeader";
+import UserHeader from "@/components/User/userHeader";
 import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 interface Property {
   id: string;
@@ -28,16 +26,27 @@ function getStatusColor(status: string) {
   }
 }
 
-export default function AgentPropertyList() {
+export default function UserPropertyList() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      setUserId(localStorage.getItem("userID"));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
     const fetchProperties = async () => {
       setLoading(true);
       try {
-        const querySnapshot = await getDocs(collection(db, "properties"));
+        const q = query(
+          collection(db, "properties"),
+          where("ownerId", "==", userId),
+        );
+        const querySnapshot = await getDocs(q);
         const propertyList: Property[] = querySnapshot.docs.map((doc) => {
           const data = doc.data();
           return {
@@ -57,31 +66,24 @@ export default function AgentPropertyList() {
       }
     };
     fetchProperties();
-  }, []);
+  }, [userId]);
 
   return (
     <>
-      <AgentHeader />
+      <UserHeader />
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto px-4 py-8">
           <div className="mx-auto max-w-6xl">
             <div className="mb-8 flex items-center justify-between">
               <div>
                 <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
-                  Property List
+                  My Properties
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
-                  View and manage your listed properties
+                  View and manage your properties
                 </p>
               </div>
-              <button
-                onClick={() => router.push("/agent/agentDocumentUpload")}
-                className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-              >
-                Upload Document
-              </button>
             </div>
-
             <div className="overflow-x-auto rounded-lg bg-white shadow-md dark:bg-gray-800">
               {loading ? (
                 <div className="flex items-center justify-center py-12">
@@ -140,21 +142,11 @@ export default function AgentPropertyList() {
                         <td className="px-6 py-4 text-center whitespace-nowrap">
                           <button
                             onClick={() =>
-                              router.push(
-                                `/agent/agentPropertyDetails?id=${property.id}`,
-                              )
+                              (window.location.href = `/user/userPropertyDetails?id=${property.id}`)
                             }
                             className="mr-2 rounded bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600"
                           >
                             View Details
-                          </button>
-                          <button
-                            onClick={() =>
-                              router.push("/agent/agentDocumentUpload")
-                            }
-                            className="rounded bg-green-500 px-3 py-1 text-xs text-white hover:bg-green-600"
-                          >
-                            Upload Document
                           </button>
                         </td>
                       </tr>
