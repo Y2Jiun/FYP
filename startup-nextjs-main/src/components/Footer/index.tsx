@@ -5,30 +5,275 @@ import Link from "next/link";
 const Footer = () => {
   return (
     <>
-      <footer className="relative z-10 bg-white pt-16 dark:bg-gray-dark md:pt-20 lg:pt-24">
+      <footer className="dark:bg-gray-dark relative z-10 bg-white pt-16 md:pt-20 lg:pt-24">
         <div className="container">
           <div className="-mx-4 flex flex-wrap">
             <div className="w-full px-4 md:w-1/2 lg:w-4/12 xl:w-5/12">
               <div className="mb-12 max-w-[360px] lg:mb-16">
                 <Link href="/" className="mb-8 inline-block">
-                  <Image
-                    src="/images/logo/logo-2.svg"
-                    alt="logo"
-                    className="w-full dark:hidden"
-                    width={140}
-                    height={30}
-                  />
-                  <Image
-                    src="/images/logo/logo.svg"
-                    alt="logo"
-                    className="hidden w-full dark:block"
-                    width={140}
-                    height={30}
-                  />
+                  {/* Advanced DeveloperShield Logo */}
+                  <div className="flex items-center space-x-3">
+                    <svg
+                      width="60"
+                      height="60"
+                      viewBox="0 0 60 60"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="flex-shrink-0"
+                    >
+                      {/* Shield with house and security elements */}
+                      <g filter="url(#filter0_d)">
+                        {/* Shield background */}
+                        <path
+                          d="M30 5L50 15V25C50 35 40 45 30 50C20 45 10 35 10 25V15L30 5Z"
+                          fill="url(#shieldGradient)"
+                          stroke="#4A6CF7"
+                          strokeWidth="1.5"
+                        />
+
+                        {/* House inside shield */}
+                        <g transform="translate(20, 20)">
+                          {/* House structure */}
+                          <path
+                            d="M5 15L15 8L25 15V22H5V15Z"
+                            fill="url(#houseGradient)"
+                            stroke="#FFFFFF"
+                            strokeWidth="0.8"
+                          />
+                          {/* Roof */}
+                          <path
+                            d="M5 15L15 8L25 15"
+                            stroke="#FFFFFF"
+                            strokeWidth="1.2"
+                            fill="none"
+                          />
+                          {/* Windows */}
+                          <rect
+                            x="8"
+                            y="12"
+                            width="3"
+                            height="3"
+                            fill="url(#windowGradient)"
+                            stroke="#FFFFFF"
+                            strokeWidth="0.3"
+                          />
+                          <rect
+                            x="19"
+                            y="12"
+                            width="3"
+                            height="3"
+                            fill="url(#windowGradient)"
+                            stroke="#FFFFFF"
+                            strokeWidth="0.3"
+                          />
+                          {/* Door */}
+                          <rect
+                            x="13"
+                            y="15"
+                            width="4"
+                            height="7"
+                            fill="url(#doorGradient)"
+                            stroke="#FFFFFF"
+                            strokeWidth="0.3"
+                          />
+                        </g>
+
+                        {/* Security lock icon */}
+                        <g transform="translate(25, 8)">
+                          <circle
+                            cx="5"
+                            cy="5"
+                            r="3"
+                            fill="url(#lockGradient)"
+                            stroke="#FFFFFF"
+                            strokeWidth="0.5"
+                          />
+                          <rect
+                            x="3"
+                            y="5"
+                            width="4"
+                            height="3"
+                            fill="url(#lockGradient)"
+                            stroke="#FFFFFF"
+                            strokeWidth="0.3"
+                          />
+                        </g>
+
+                        {/* Transparency overlay */}
+                        <path
+                          d="M30 5L50 15V25C50 35 40 45 30 50C20 45 10 35 10 25V15L30 5Z"
+                          fill="url(#transparencyGradient)"
+                          opacity="0.2"
+                        />
+                      </g>
+
+                      {/* Advanced Gradients */}
+                      <defs>
+                        <linearGradient
+                          id="shieldGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#4A6CF7"
+                            stopOpacity="0.95"
+                          />
+                          <stop
+                            offset="50%"
+                            stopColor="#3B82F6"
+                            stopOpacity="0.9"
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="#1E40AF"
+                            stopOpacity="0.85"
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="houseGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#FFFFFF"
+                            stopOpacity="0.9"
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="#E5E7EB"
+                            stopOpacity="0.8"
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="windowGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#FFFFFF"
+                            stopOpacity="0.9"
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="#F3F4F6"
+                            stopOpacity="0.7"
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="doorGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#4A6CF7"
+                            stopOpacity="0.8"
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="#3B82F6"
+                            stopOpacity="0.6"
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="lockGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#10B981"
+                            stopOpacity="0.9"
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="#059669"
+                            stopOpacity="0.8"
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="transparencyGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#FFFFFF"
+                            stopOpacity="0.3"
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="#4A6CF7"
+                            stopOpacity="0.1"
+                          />
+                        </linearGradient>
+                        <filter
+                          id="filter0_d"
+                          x="0"
+                          y="0"
+                          width="60"
+                          height="60"
+                          filterUnits="userSpaceOnUse"
+                        >
+                          <feFlood
+                            floodOpacity="0"
+                            result="BackgroundImageFix"
+                          />
+                          <feColorMatrix
+                            in="SourceAlpha"
+                            type="matrix"
+                            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                          />
+                          <feOffset dy="3" />
+                          <feGaussianBlur stdDeviation="3" />
+                          <feColorMatrix
+                            type="matrix"
+                            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0"
+                          />
+                          <feBlend
+                            mode="normal"
+                            in2="BackgroundImageFix"
+                            result="effect1_dropShadow"
+                          />
+                          <feBlend
+                            mode="normal"
+                            in="SourceGraphic"
+                            in2="effect1_dropShadow"
+                            result="shape"
+                          />
+                        </filter>
+                      </defs>
+                    </svg>
+
+                    {/* Logo Text */}
+                    <div className="flex flex-col">
+                      <span className="text-2xl font-bold tracking-wide text-black dark:text-white">
+                        DeveloperShield
+                      </span>
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Property Transparency Platform
+                      </span>
+                    </div>
+                  </div>
                 </Link>
-                <p className="mb-9 text-base leading-relaxed text-body-color dark:text-body-color-dark">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                  Integer lobortis.
+                <p className="text-body-color dark:text-body-color-dark mb-9 text-base leading-relaxed">
+                  Empowering property transparency through verified
+                  documentation and secure transactions.
                 </p>
                 <div className="flex items-center">
                   <a
@@ -36,7 +281,7 @@ const Footer = () => {
                     aria-label="social-link"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mr-6 text-body-color duration-300 hover:text-primary dark:text-body-color-dark dark:hover:text-primary"
+                    className="text-body-color hover:text-primary dark:text-body-color-dark dark:hover:text-primary mr-6 duration-300"
                   >
                     <svg
                       width="18"
@@ -56,7 +301,7 @@ const Footer = () => {
                     aria-label="social-link"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mr-6 text-body-color duration-300 hover:text-primary dark:text-body-color-dark dark:hover:text-primary"
+                    className="text-body-color hover:text-primary dark:text-body-color-dark dark:hover:text-primary mr-6 duration-300"
                   >
                     <svg
                       width="18"
@@ -78,7 +323,7 @@ const Footer = () => {
                     aria-label="social-link"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mr-6 text-body-color duration-300 hover:text-primary dark:text-body-color-dark dark:hover:text-primary"
+                    className="text-body-color hover:text-primary dark:text-body-color-dark dark:hover:text-primary mr-6 duration-300"
                   >
                     <svg
                       width="18"
@@ -94,7 +339,7 @@ const Footer = () => {
                     aria-label="social-link"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-body-color duration-300 hover:text-primary dark:text-body-color-dark dark:hover:text-primary"
+                    className="text-body-color hover:text-primary dark:text-body-color-dark dark:hover:text-primary duration-300"
                   >
                     <svg
                       width="17"
@@ -118,7 +363,7 @@ const Footer = () => {
                   <li>
                     <Link
                       href="/blog"
-                      className="mb-4 inline-block text-base text-body-color duration-300 hover:text-primary dark:text-body-color-dark dark:hover:text-primary"
+                      className="text-body-color hover:text-primary dark:text-body-color-dark dark:hover:text-primary mb-4 inline-block text-base duration-300"
                     >
                       Blog
                     </Link>
@@ -126,7 +371,7 @@ const Footer = () => {
                   <li>
                     <Link
                       href="/"
-                      className="mb-4 inline-block text-base text-body-color duration-300 hover:text-primary dark:text-body-color-dark dark:hover:text-primary"
+                      className="text-body-color hover:text-primary dark:text-body-color-dark dark:hover:text-primary mb-4 inline-block text-base duration-300"
                     >
                       Pricing
                     </Link>
@@ -134,7 +379,7 @@ const Footer = () => {
                   <li>
                     <Link
                       href="/about"
-                      className="mb-4 inline-block text-base text-body-color duration-300 hover:text-primary dark:text-body-color-dark dark:hover:text-primary"
+                      className="text-body-color hover:text-primary dark:text-body-color-dark dark:hover:text-primary mb-4 inline-block text-base duration-300"
                     >
                       About
                     </Link>
@@ -152,7 +397,7 @@ const Footer = () => {
                   <li>
                     <Link
                       href="/"
-                      className="mb-4 inline-block text-base text-body-color duration-300 hover:text-primary dark:text-body-color-dark dark:hover:text-primary"
+                      className="text-body-color hover:text-primary dark:text-body-color-dark dark:hover:text-primary mb-4 inline-block text-base duration-300"
                     >
                       TOS
                     </Link>
@@ -160,7 +405,7 @@ const Footer = () => {
                   <li>
                     <Link
                       href="/"
-                      className="mb-4 inline-block text-base text-body-color duration-300 hover:text-primary dark:text-body-color-dark dark:hover:text-primary"
+                      className="text-body-color hover:text-primary dark:text-body-color-dark dark:hover:text-primary mb-4 inline-block text-base duration-300"
                     >
                       Privacy Policy
                     </Link>
@@ -168,7 +413,7 @@ const Footer = () => {
                   <li>
                     <Link
                       href="/"
-                      className="mb-4 inline-block text-base text-body-color duration-300 hover:text-primary dark:text-body-color-dark dark:hover:text-primary"
+                      className="text-body-color hover:text-primary dark:text-body-color-dark dark:hover:text-primary mb-4 inline-block text-base duration-300"
                     >
                       Refund Policy
                     </Link>
@@ -186,7 +431,7 @@ const Footer = () => {
                   <li>
                     <Link
                       href="/contact"
-                      className="mb-4 inline-block text-base text-body-color duration-300 hover:text-primary dark:text-body-color-dark dark:hover:text-primary"
+                      className="text-body-color hover:text-primary dark:text-body-color-dark dark:hover:text-primary mb-4 inline-block text-base duration-300"
                     >
                       Open Support Ticket
                     </Link>
@@ -194,7 +439,7 @@ const Footer = () => {
                   <li>
                     <Link
                       href="/"
-                      className="mb-4 inline-block text-base text-body-color duration-300 hover:text-primary dark:text-body-color-dark dark:hover:text-primary"
+                      className="text-body-color hover:text-primary dark:text-body-color-dark dark:hover:text-primary mb-4 inline-block text-base duration-300"
                     >
                       Terms of Use
                     </Link>
@@ -202,7 +447,7 @@ const Footer = () => {
                   <li>
                     <Link
                       href="/about"
-                      className="mb-4 inline-block text-base text-body-color duration-300 hover:text-primary dark:text-body-color-dark dark:hover:text-primary"
+                      className="text-body-color hover:text-primary dark:text-body-color-dark dark:hover:text-primary mb-4 inline-block text-base duration-300"
                     >
                       About
                     </Link>
@@ -211,32 +456,8 @@ const Footer = () => {
               </div>
             </div>
           </div>
-
-          <div className="h-px w-full bg-linear-to-r from-transparent via-[#D2D8E183] to-transparent dark:via-[#959CB183]"></div>
-          <div className="py-8">
-            <p className="text-center text-base text-body-color dark:text-white">
-              Template by{" "}
-              <a
-                href="http://uideck.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-primary"
-              >
-                UIdeck
-              </a>{" "}
-              and{" "}
-              <a
-                href="https://nextjstemplates.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-primary"
-              >
-                Next.js Templates
-              </a>
-            </p>
-          </div>
         </div>
-        <div className="absolute right-0 top-14 z-[-1]">
+        <div className="absolute top-14 right-0 z-[-1]">
           <svg
             width="55"
             height="99"
