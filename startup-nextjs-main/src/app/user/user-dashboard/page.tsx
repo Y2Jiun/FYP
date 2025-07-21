@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import UserHeader from "@/components/User/userHeader";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
+import Link from "next/link";
 
 export default function UserDashboard() {
   const [userId, setUserId] = useState<string | null>(null);

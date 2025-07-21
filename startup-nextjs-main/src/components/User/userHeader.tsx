@@ -260,6 +260,12 @@ export default function UserHeader() {
               {item.title}
             </Link>
           ))}
+          <Link
+            href="/user/userCalculator"
+            className="hover:text-primary rounded px-3 py-2 font-medium text-white transition-colors duration-200"
+          >
+            Loan Calculator
+          </Link>
         </nav>
         {/* Spacer to push sign out/theme to right */}
         <div className="flex-1" />

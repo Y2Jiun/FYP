@@ -8,11 +8,13 @@
     "dev:backend": "node server/index.js"
   },
   "dependencies": {
+    "@google-cloud/vision": "^5.3.1",
     "@mantine/rte": "^5.10.5",
     "@tailwindcss/postcss": "^4.1.3",
     "@tiptap/react": "^3.0.6",
     "@tiptap/starter-kit": "^3.0.6",
     "axios": "^1.10.0",
+    "bad-words": "^3.0.4",
     "eslint": "^9.24.0",
     "eslint-config-next": "15.1.6",
     "firebase": "^11.10.0",

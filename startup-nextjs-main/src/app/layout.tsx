@@ -28,6 +28,7 @@ export default function RootLayout({
     "/admin/", // Hide header for all admin pages
     "/agent/",
     "/user/",
+    "/property/",
     // add more if needed
   ];
 

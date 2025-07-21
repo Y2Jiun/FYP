@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import UserHeader from "@/components/User/userHeader";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
+import Link from "next/link";
 
 interface Property {
   id: string;
@@ -140,14 +141,11 @@ export default function UserPropertyList() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-center whitespace-nowrap">
-                          <button
-                            onClick={() =>
-                              (window.location.href = `/user/userPropertyDetails?id=${property.id}`)
-                            }
-                            className="mr-2 rounded bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600"
-                          >
-                            View Details
-                          </button>
+                          <Link href={`/property/${property.id}`}>
+                            <button className="bg-primary hover:bg-primary/90 mr-2 rounded px-3 py-1 text-xs text-white">
+                              Chat about this Property
+                            </button>
+                          </Link>
                         </td>
                       </tr>
                     ))}

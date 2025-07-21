@@ -336,13 +336,13 @@ export default function AdminHeader() {
                 )}
               </div>
             ) : (
-              <Link
-                key={item.title}
-                href={item.path}
-                className="hover:text-primary rounded px-3 py-2 font-medium text-white transition-colors duration-200"
-              >
-                {item.title}
-              </Link>
+            <Link
+              key={item.title}
+              href={item.path}
+              className="hover:text-primary rounded px-3 py-2 font-medium text-white transition-colors duration-200"
+            >
+              {item.title}
+            </Link>
             ),
           )}
         </nav>
@@ -453,15 +453,15 @@ export default function AdminHeader() {
                   </div>
                 </li>
               ) : (
-                <li key={item.title}>
-                  <Link
-                    href={item.path}
-                    className="hover:text-primary block rounded px-3 py-2 font-medium text-white transition-colors duration-200"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    {item.title}
-                  </Link>
-                </li>
+              <li key={item.title}>
+                <Link
+                  href={item.path}
+                  className="hover:text-primary block rounded px-3 py-2 font-medium text-white transition-colors duration-200"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {item.title}
+                </Link>
+              </li>
               ),
             )}
           </ul>

@@ -1,6 +1,10 @@
+console.log("Current working directory:", process.cwd());
+console.log("ENV FILE LOADED:", process.env.OPENAI_API_KEY);
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { db } = require("./firebaseAdmin");
+const moderationRoutes = require("./routes/moderation");
 
 const app = express();
 app.use(cors());
@@ -13,6 +17,9 @@ app.use("/api", notificationRoutes);
 // Add property verification API
 const propertyVerificationRoutes = require("./propertyVerification");
 app.use("/api/property-verification", propertyVerificationRoutes);
+
+// Mount moderation API
+app.use("/api", moderationRoutes);
 
 // 🔐 POST /login → check email & return role
 app.post("/login", async (req, res) => {
