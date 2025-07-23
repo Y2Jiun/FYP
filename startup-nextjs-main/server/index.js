@@ -5,6 +5,7 @@ const express = require("express");
 const cors = require("cors");
 const { db } = require("./firebaseAdmin");
 const moderationRoutes = require("./routes/moderation");
+const chatbotRoutes = require("./routes/chatbot");
 
 const app = express();
 app.use(cors());
@@ -20,6 +21,7 @@ app.use("/api/property-verification", propertyVerificationRoutes);
 
 // Mount moderation API
 app.use("/api", moderationRoutes);
+app.use("/api", chatbotRoutes);
 
 // 🔐 POST /login → check email & return role
 app.post("/login", async (req, res) => {
