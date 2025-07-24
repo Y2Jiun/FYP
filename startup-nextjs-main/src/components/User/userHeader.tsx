@@ -266,6 +266,12 @@ export default function UserHeader() {
           >
             Loan Calculator
           </Link>
+          <Link
+            href="/user/userChatbot"
+            className="hover:text-primary rounded px-3 py-2 font-medium text-white transition-colors duration-200"
+          >
+            Chatbot
+          </Link>
         </nav>
         {/* Spacer to push sign out/theme to right */}
         <div className="flex-1" />

@@ -1,6 +1,6 @@
+require("dotenv").config({ path: ".env" });
 console.log("Current working directory:", process.cwd());
-console.log("ENV FILE LOADED:", process.env.OPENAI_API_KEY);
-require("dotenv").config();
+console.log("ENV FILE LOADED:", process.env.HUGGINGFACE_API_TOKEN);
 const express = require("express");
 const cors = require("cors");
 const { db } = require("./firebaseAdmin");
