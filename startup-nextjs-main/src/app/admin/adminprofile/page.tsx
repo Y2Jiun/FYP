@@ -13,6 +13,16 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { auth } from "@/lib/firebase"; // your firebase auth instance
 import { useRouter } from "next/navigation";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import imageCompression from "browser-image-compression";
+
+// Add this to declare window.cloudinary for TypeScript
+declare global {
+  interface Window {
+    cloudinary: any;
+  }
+}
 
 async function checkCurrentPassword(email, currentPassword) {
   const user = auth.currentUser;
@@ -35,7 +45,6 @@ export default function AdminProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [docId, setDocId] = useState<string | null>(null);
   const [errors, setErrors] = useState<any>({});
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -43,6 +52,7 @@ export default function AdminProfilePage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordSectionError, setPasswordSectionError] = useState("");
   const router = useRouter();
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -63,12 +73,31 @@ export default function AdminProfilePage() {
     fetchUser();
   }, []);
 
-  const handleProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setProfilePic(ev.target?.result as string);
-      reader.readAsDataURL(e.target.files[0]);
-    }
+  // Remove the old handleProfilePicChange and fileInputRef logic
+  // Add Cloudinary upload handler
+  const handleCloudinaryUpload = () => {
+    if (!window.cloudinary) return;
+    window.cloudinary.openUploadWidget(
+      {
+        cloudName: "dvl5whm1n", // your Cloudinary cloud name
+        uploadPreset: "derrick", // your unsigned preset name
+        sources: ["local", "url", "camera"],
+        multiple: false,
+        cropping: false,
+        defaultSource: "local",
+      },
+      async (error, result) => {
+        if (!error && result && result.event === "success") {
+          setProfilePic(result.info.secure_url);
+          // Save to Firestore immediately
+          if (docId) {
+            await updateDoc(doc(db, "users", docId), {
+              profilePic: result.info.secure_url,
+            });
+          }
+        }
+      },
+    );
   };
 
   // Password validation regex
@@ -201,16 +230,18 @@ export default function AdminProfilePage() {
           Admin Profile
         </h2>
         <div className="mb-6 flex flex-col items-center">
-          <div className="relative mt-0">
+          <div className="group relative mt-0">
             <img
               src={profilePic || "/default-profile.png"}
               alt="Profile"
-              className="border-primary h-32 w-32 rounded-full border-4 object-cover"
+              className="border-primary h-32 w-32 rounded-full border-4 object-cover shadow-lg"
             />
             <button
-              className="bg-primary hover:bg-primary/80 absolute right-2 bottom-2 rounded-full p-2 text-white"
-              onClick={() => fileInputRef.current?.click()}
-              title="Edit profile picture"
+              className="absolute right-2 bottom-2 flex items-center justify-center rounded-full bg-blue-500 p-2 text-white opacity-80 shadow-lg transition-opacity duration-200 group-hover:opacity-100 hover:bg-blue-600 focus:outline-none"
+              onClick={handleCloudinaryUpload}
+              title="Change Photo"
+              style={{ zIndex: 2, display: editMode ? undefined : "none" }}
+              disabled={!editMode}
             >
               <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
                 <path
@@ -222,13 +253,6 @@ export default function AdminProfilePage() {
                 />
               </svg>
             </button>
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              className="hidden"
-              onChange={handleProfilePicChange}
-            />
           </div>
         </div>
         {/* Profile Fields Row */}
@@ -355,10 +379,10 @@ export default function AdminProfilePage() {
           </button>
           <button
             onClick={handleSave}
-            disabled={!editMode}
+            disabled={!editMode || uploading}
             className={`rounded px-8 py-3 text-lg font-bold ${editMode ? "bg-green-500 text-white hover:bg-green-600" : "cursor-not-allowed bg-gray-300 text-gray-500"}`}
           >
-            Save
+            {uploading ? "Uploading..." : "Save"}
           </button>
         </div>
       </div>

@@ -13,6 +13,7 @@ interface Property {
   price: number;
   type: string;
   status: "pending" | "verified" | "rejected";
+  image1?: string;
 }
 
 function getStatusColor(status: string) {
@@ -47,6 +48,7 @@ export default function AgentPropertyList() {
             price: data.price || 0,
             type: data.propertyType || "-",
             status: data.status || "pending",
+            image1: data.image1 || "",
           };
         });
         setProperties(propertyList);
@@ -75,94 +77,86 @@ export default function AgentPropertyList() {
                 </p>
               </div>
               <button
-                onClick={() => router.push("/agent/agentDocumentUpload")}
+                onClick={() => router.push("/agent/createProperty")}
                 className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
               >
-                Upload Document
+                Create Property
               </button>
             </div>
 
-            <div className="overflow-x-auto rounded-lg bg-white shadow-md dark:bg-gray-800">
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-blue-600"></div>
-                  <span className="ml-4 text-gray-600 dark:text-gray-300">
-                    Loading properties...
-                  </span>
-                </div>
-              ) : (
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-100 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300">
-                        Title
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300">
-                        Address
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300">
-                        Type
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300">
-                        Price
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
-                    {properties.map((property) => (
-                      <tr key={property.id}>
-                        <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900 dark:text-white">
-                          {property.title}
-                        </td>
-                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-700 dark:text-gray-300">
-                          {property.address}
-                        </td>
-                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-700 dark:text-gray-300">
-                          {property.type}
-                        </td>
-                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-700 dark:text-gray-300">
-                          RM{property.price.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(property.status)}`}
-                          >
-                            {property.status.charAt(0).toUpperCase() +
-                              property.status.slice(1)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center whitespace-nowrap">
-                          <button
-                            onClick={() =>
-                              router.push(
-                                `/agent/agentPropertyDetails?id=${property.id}`,
-                              )
-                            }
-                            className="mr-2 rounded bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600"
-                          >
-                            View Details
-                          </button>
-                          <button
-                            onClick={() =>
-                              router.push("/agent/agentDocumentUpload")
-                            }
-                            className="rounded bg-green-500 px-3 py-1 text-xs text-white hover:bg-green-600"
-                          >
-                            Upload Document
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+            {/* Card Grid Layout */}
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-blue-600"></div>
+                <span className="ml-4 text-gray-600 dark:text-gray-300">
+                  Loading properties...
+                </span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3">
+                {properties.map((property) => (
+                  <div
+                    key={property.id}
+                    className="flex flex-col overflow-hidden rounded-lg border border-gray-100 bg-white shadow-md transition-shadow hover:shadow-lg dark:border-gray-700 dark:bg-gray-800"
+                  >
+                    <img
+                      src={
+                        property.image1 && property.image1 !== ""
+                          ? property.image1
+                          : "/images/property-placeholder.png"
+                      }
+                      alt={property.title}
+                      className="h-48 w-full bg-gray-100 object-cover dark:bg-gray-700"
+                    />
+                    <div className="flex flex-1 flex-col p-5">
+                      <h2 className="mb-2 text-xl font-semibold text-gray-900 dark:text-white">
+                        {property.title}
+                      </h2>
+                      <p className="mb-1 text-gray-600 dark:text-gray-300">
+                        <span className="font-medium">Address:</span>{" "}
+                        {property.address}
+                      </p>
+                      <p className="mb-1 text-gray-600 dark:text-gray-300">
+                        <span className="font-medium">Type:</span>{" "}
+                        {property.type}
+                      </p>
+                      <p className="mb-1 text-gray-600 dark:text-gray-300">
+                        <span className="font-medium">Price:</span> RM
+                        {property.price.toLocaleString()}
+                      </p>
+                      <div className="mt-1 mb-3">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(property.status)}`}
+                        >
+                          {property.status.charAt(0).toUpperCase() +
+                            property.status.slice(1)}
+                        </span>
+                      </div>
+                      <div className="mt-auto flex gap-2">
+                        <button
+                          onClick={() =>
+                            router.push(
+                              `/agent/agentPropertyDetails?id=${property.id}`,
+                            )
+                          }
+                          className="w-1/2 rounded bg-blue-500 px-4 py-2 text-sm text-white shadow hover:bg-blue-600"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          onClick={() =>
+                            router.push("/agent/agentDocumentUpload")
+                          }
+                          className="w-1/2 rounded bg-green-500 px-4 py-2 text-sm text-white shadow hover:bg-green-600"
+                        >
+                          Upload Document
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

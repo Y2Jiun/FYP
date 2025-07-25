@@ -41,8 +41,10 @@ export default function RootLayout({
     hideHeaderPaths.some((path) => pathname.startsWith(path));
 
   return (
-    <html suppressHydrationWarning lang="en">
-      <head />
+    <html lang="en">
+      <head>
+        <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
+      </head>
       <body className={`bg-[#FCFCFC] dark:bg-black ${inter.className}`}>
         <Providers>
           {!hideHeader && <Header />}

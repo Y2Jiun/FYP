@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCI3cfmtgWQw3rkAmOWpxrdBNSvBH00R8s",
@@ -18,6 +19,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 /**
  * Fetch the real Firebase UID for a given custom userID (e.g., 'UID7').
@@ -34,4 +36,4 @@ export async function getFirebaseUidByCustomId(
   return null;
 }
 
-export { auth, db };
+export { auth, db, storage };

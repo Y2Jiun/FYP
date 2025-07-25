@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import {
@@ -25,6 +25,10 @@ export default function SigninPage() {
   const [fetchedUserId, setFetchedUserId] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState(""); // Add if not present
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Add this at the top of the component
   // Allow Google Sign-In on localhost, 127.0.0.1, and 10.79.224.123
@@ -153,7 +157,7 @@ export default function SigninPage() {
                   type="button"
                   onClick={handleGoogleSignIn}
                   className="mb-6 flex w-full items-center justify-center gap-3 rounded-lg border border-blue-500 bg-gradient-to-r from-[#23272f] to-[#181c23] py-3 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:scale-[1.03] hover:from-[#2d3340] hover:to-[#23272f] hover:shadow-xl focus:outline-none"
-                  disabled={!isLocalhost}
+                  disabled={mounted ? !isLocalhost : true}
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <g>

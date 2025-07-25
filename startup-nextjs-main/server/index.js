@@ -3,12 +3,22 @@ console.log("Current working directory:", process.cwd());
 console.log("ENV FILE LOADED:", process.env.HUGGINGFACE_API_TOKEN);
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const { db } = require("./firebaseAdmin");
 const moderationRoutes = require("./routes/moderation");
 const chatbotRoutes = require("./routes/chatbot");
 
 const app = express();
-app.use(cors());
+app.use(helmet());
+
+// Configure CORS with custom options (adjust origin as needed)
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://192.168.1.3:3000"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // Add this for notification API
@@ -114,6 +124,6 @@ const exportDataRoutes = require("./exportData");
 app.use("/api", exportDataRoutes);
 
 const PORT = 4000;
-app.listen(PORT, () =>
+app.listen(PORT, "0.0.0.0", () =>
   console.log(`✅ Backend running on http://localhost:${PORT}`),
 );
