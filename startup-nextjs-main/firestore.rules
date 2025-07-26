@@ -1,3 +1,5 @@
+rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
     match /static/{document=**} {
@@ -12,7 +14,6 @@ service cloud.firestore {
     match /notificationCounter/{document=**} {
       allow read, write: if true;
     }
-    
     // Property Verification Collections
     match /properties/{document=**} {
       allow read, write: if true;
@@ -26,12 +27,26 @@ service cloud.firestore {
     match /propertyImages/{document=**} {
       allow read, write: if true;
     }
-    
     // Counter Collections for ID Generation
-    match /counters/{document=**} {
+    match /propertiesCounter/{document=**} {
       allow read, write: if true;
     }
-    
+    match /propertyDocumentsCounter/{document=**} {
+      allow read, write: if true;
+    }
+    match /propertyVerificationHistoryCounter/{document=**} {
+      allow read, write: if true;
+    }
+    match /propertyImagesCounter/{document=**} {
+      allow read, write: if true;
+    }
+    // Chat Collections (DEBUG - COMPLETELY OPEN)
+    match /chats/{chatId} {
+      allow read, write: if true;
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
+    }
     // Add more collections as needed
   }
 } 

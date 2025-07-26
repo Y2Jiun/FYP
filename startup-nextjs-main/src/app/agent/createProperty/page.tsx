@@ -1,7 +1,16 @@
 "use client";
-import React, { useState } from "react";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, setDoc, doc } from "firebase/firestore";
+import React, { useState, useEffect } from "react";
+import { db, auth } from "@/lib/firebase";
+import {
+  collection,
+  getDocs,
+  setDoc,
+  doc,
+  query,
+  where,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
 // Add this to declare window.cloudinary for TypeScript
@@ -11,11 +20,30 @@ declare global {
   }
 }
 
+const malaysianStates = [
+  "Perlis",
+  "Melaka",
+  "Kelantan",
+  "Putrajaya",
+  "Selangor",
+  "Pulau Pinang",
+  "Terengganu",
+  "Sarawak",
+  "Perak",
+  "Pahang",
+  "Kuala Lumpur",
+  "Labuan",
+  "Sabah",
+  "Johor",
+  "Negeri Sembilan",
+  "Kedah",
+];
+
 const initialForm = {
   title: "",
   address: "",
   price: "",
-  type: "",
+  propertyType: "", // Changed from 'type' to 'propertyType' to match DB
   status: "pending",
   description: "",
   bedrooms: "",
@@ -32,7 +60,32 @@ export default function CreatePropertyPage() {
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userData, setUserData] = useState<any>(null);
   const router = useRouter();
+
+  // Get current user data on component mount
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        setCurrentUser(user);
+
+        // Fetch user data from Firestore
+        const email = localStorage.getItem("userEmail");
+        if (email) {
+          const q = query(collection(db, "users"), where("email", "==", email));
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            const userDoc = querySnapshot.docs[0];
+            setUserData(userDoc.data());
+          }
+        }
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
 
   // Helper to get next propertyId (PROP001, PROP002, ...)
   const getNextPropertyId = async () => {
@@ -78,21 +131,54 @@ export default function CreatePropertyPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
+
+    // Validate that we have user data
+    if (!currentUser || !userData) {
+      setError("User authentication required. Please log in again.");
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const propertyId = await getNextPropertyId();
-      await setDoc(doc(db, "properties", propertyId), {
+
+      // Prepare property data with all required fields
+      const propertyData = {
         ...form,
         propertyId,
         price: Number(form.price),
         bedrooms: Number(form.bedrooms),
         bathrooms: Number(form.bathrooms),
         size: Number(form.size),
+        postcode: Number(form.postcode),
         status: "pending",
         createdAt: new Date(),
         updatedAt: new Date(),
-      });
+
+        // Agent information (current logged-in user)
+        agentId: userData.userID || "",
+        agentName: userData.username || "",
+        agentUID: currentUser.uid,
+
+        // Owner information (all users can view, so set to current user for now)
+        ownerId: userData.userID || "",
+        userUID: currentUser.uid,
+
+        // Verification status
+        verificationStatus: {
+          overall: "pending",
+        },
+      };
+
+      // Create the property
+      await setDoc(doc(db, "properties", propertyId), propertyData);
+
+      // Note: Chat document will be created automatically when a user starts chatting
+      // This prevents permission issues with empty userUID/agentUID fields
+
       router.push("/agent/agentPropertyList");
     } catch (err) {
+      console.error("Error creating property:", err);
       setError("Failed to create property. Please try again.");
     } finally {
       setSubmitting(false);
@@ -100,131 +186,256 @@ export default function CreatePropertyPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 py-8 dark:bg-gray-900">
-      <div className="w-full max-w-2xl rounded-lg bg-white p-8 shadow-xl dark:bg-gray-800">
-        <h1 className="mb-6 text-center text-3xl font-bold text-gray-900 dark:text-white">
-          Create New Property
-        </h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            name="title"
-            value={form.title}
-            onChange={handleChange}
-            required
-            placeholder="Title"
-            className="w-full rounded border px-3 py-2 dark:bg-gray-700 dark:text-white"
-          />
-          <input
-            name="address"
-            value={form.address}
-            onChange={handleChange}
-            required
-            placeholder="Address"
-            className="w-full rounded border px-3 py-2 dark:bg-gray-700 dark:text-white"
-          />
-          <input
-            name="city"
-            value={form.city}
-            onChange={handleChange}
-            required
-            placeholder="City"
-            className="w-full rounded border px-3 py-2 dark:bg-gray-700 dark:text-white"
-          />
-          <input
-            name="postcode"
-            value={form.postcode}
-            onChange={handleChange}
-            required
-            placeholder="Postcode"
-            className="w-full rounded border px-3 py-2 dark:bg-gray-700 dark:text-white"
-          />
-          <input
-            name="price"
-            value={form.price}
-            onChange={handleChange}
-            required
-            type="number"
-            placeholder="Price"
-            className="w-full rounded border px-3 py-2 dark:bg-gray-700 dark:text-white"
-          />
-          <input
-            name="bedrooms"
-            value={form.bedrooms}
-            onChange={handleChange}
-            required
-            type="number"
-            placeholder="Bedrooms"
-            className="w-full rounded border px-3 py-2 dark:bg-gray-700 dark:text-white"
-          />
-          <input
-            name="bathrooms"
-            value={form.bathrooms}
-            onChange={handleChange}
-            required
-            type="number"
-            placeholder="Bathrooms"
-            className="w-full rounded border px-3 py-2 dark:bg-gray-700 dark:text-white"
-          />
-          <input
-            name="size"
-            value={form.size}
-            onChange={handleChange}
-            required
-            type="number"
-            placeholder="Size (sqft)"
-            className="w-full rounded border px-3 py-2 dark:bg-gray-700 dark:text-white"
-          />
-          <select
-            name="type"
-            value={form.type}
-            onChange={handleChange}
-            required
-            className="w-full rounded border px-3 py-2 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">Select Type</option>
-            <option value="condo">Condo</option>
-            <option value="apartment">Apartment</option>
-            <option value="landed">Landed</option>
-            <option value="terrace">Terrace</option>
-            <option value="bungalow">Bungalow</option>
-            <option value="other">Other</option>
-          </select>
-          <textarea
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            required
-            placeholder="Description"
-            className="w-full rounded border px-3 py-2 dark:bg-gray-700 dark:text-white"
-          />
-          <div className="flex flex-col gap-2">
-            {["image1", "image2", "image3"].map((field, idx) => (
-              <div key={field} className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600 focus:outline-none"
-                  onClick={() => handleCloudinaryUpload(field as any)}
-                >
-                  Upload Image {idx + 1}
-                </button>
-                {form[field as keyof typeof form] && (
-                  <img
-                    src={form[field as keyof typeof form] as string}
-                    alt={`Property image ${idx + 1}`}
-                    className="h-16 w-24 rounded border border-gray-200 bg-gray-100 object-cover shadow-sm dark:border-gray-700 dark:bg-gray-800"
-                  />
-                )}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-8 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        {/* Header Section */}
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl dark:text-white">
+            Create New Property
+          </h1>
+          <p className="mt-3 text-lg text-gray-600 dark:text-gray-300">
+            Add a new property to your portfolio
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Basic Information Card */}
+          <div className="rounded-xl bg-white p-6 shadow-lg sm:p-8 dark:bg-gray-800">
+            <h2 className="mb-6 text-2xl font-semibold text-gray-900 dark:text-white">
+              Basic Information
+            </h2>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Property Title
+                </label>
+                <input
+                  name="title"
+                  value={form.title}
+                  onChange={handleChange}
+                  required
+                  placeholder="Enter property title"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-blue-400"
+                />
               </div>
-            ))}
+
+              <div className="sm:col-span-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Address
+                </label>
+                <input
+                  name="address"
+                  value={form.address}
+                  onChange={handleChange}
+                  required
+                  placeholder="Enter full address"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-blue-400"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  State
+                </label>
+                <select
+                  name="city"
+                  value={form.city}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-blue-400"
+                >
+                  <option value="">Select State</option>
+                  {malaysianStates.map((state) => (
+                    <option key={state} value={state}>
+                      {state}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Postcode
+                </label>
+                <input
+                  name="postcode"
+                  value={form.postcode}
+                  onChange={handleChange}
+                  required
+                  type="number"
+                  placeholder="Enter postcode"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-blue-400"
+                />
+              </div>
+            </div>
           </div>
-          {error && <div className="text-center text-red-500">{error}</div>}
-          <button
-            type="submit"
-            className="w-full rounded bg-green-600 px-4 py-2 font-bold text-white hover:bg-green-700 disabled:opacity-60"
-            disabled={submitting}
-          >
-            {submitting ? "Creating..." : "Create Property"}
-          </button>
+
+          {/* Property Details Card */}
+          <div className="rounded-xl bg-white p-6 shadow-lg sm:p-8 dark:bg-gray-800">
+            <h2 className="mb-6 text-2xl font-semibold text-gray-900 dark:text-white">
+              Property Details
+            </h2>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Price (RM)
+                </label>
+                <input
+                  name="price"
+                  value={form.price}
+                  onChange={handleChange}
+                  required
+                  type="number"
+                  placeholder="0"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-blue-400"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Bedrooms
+                </label>
+                <input
+                  name="bedrooms"
+                  value={form.bedrooms}
+                  onChange={handleChange}
+                  required
+                  type="number"
+                  placeholder="0"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-blue-400"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Bathrooms
+                </label>
+                <input
+                  name="bathrooms"
+                  value={form.bathrooms}
+                  onChange={handleChange}
+                  required
+                  type="number"
+                  placeholder="0"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-blue-400"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Size (sqft)
+                </label>
+                <input
+                  name="size"
+                  value={form.size}
+                  onChange={handleChange}
+                  required
+                  type="number"
+                  placeholder="0"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-blue-400"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Property Type
+              </label>
+              <select
+                name="propertyType"
+                value={form.propertyType}
+                onChange={handleChange}
+                required
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none sm:max-w-xs dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-blue-400"
+              >
+                <option value="">Select Property Type</option>
+                <option value="condo">Condo</option>
+                <option value="apartment">Apartment</option>
+                <option value="landed">Landed</option>
+                <option value="terrace">Terrace</option>
+                <option value="bungalow">Bungalow</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Description Card */}
+          <div className="rounded-xl bg-white p-6 shadow-lg sm:p-8 dark:bg-gray-800">
+            <h2 className="mb-6 text-2xl font-semibold text-gray-900 dark:text-white">
+              Description
+            </h2>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Property Description
+              </label>
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                required
+                placeholder="Describe the property features, amenities, and highlights..."
+                rows={4}
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-blue-400"
+              />
+            </div>
+          </div>
+
+          {/* Images Card */}
+          <div className="rounded-xl bg-white p-6 shadow-lg sm:p-8 dark:bg-gray-800">
+            <h2 className="mb-6 text-2xl font-semibold text-gray-900 dark:text-white">
+              Property Images
+            </h2>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {["image1", "image2", "image3"].map((field, idx) => (
+                <div key={field} className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Image {idx + 1}
+                  </label>
+                  <button
+                    type="button"
+                    className="w-full rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3 font-medium text-white transition-all hover:from-blue-600 hover:to-blue-700 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                    onClick={() => handleCloudinaryUpload(field as any)}
+                  >
+                    Upload Image {idx + 1}
+                  </button>
+                  {form[field as keyof typeof form] && (
+                    <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-600">
+                      <img
+                        src={form[field as keyof typeof form] as string}
+                        alt={`Property image ${idx + 1}`}
+                        className="h-32 w-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="rounded-lg bg-red-50 p-4 text-center text-red-600 dark:bg-red-900/20 dark:text-red-400">
+              {error}
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <div className="flex justify-center">
+            <button
+              type="submit"
+              className="rounded-lg bg-gradient-to-r from-green-500 to-green-600 px-8 py-4 font-semibold text-white transition-all hover:from-green-600 hover:to-green-700 focus:ring-2 focus:ring-green-500/20 focus:outline-none disabled:opacity-60"
+              disabled={submitting}
+            >
+              {submitting ? (
+                <div className="flex items-center space-x-2">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  <span>Creating Property...</span>
+                </div>
+              ) : (
+                "Create Property"
+              )}
+            </button>
+          </div>
         </form>
       </div>
     </div>

@@ -10,8 +10,7 @@ import {
   where,
   getDocs,
 } from "firebase/firestore";
-import { getOrCreateChat } from "@/lib/chat";
-import ChatWindow from "@/components/Chat/ChatWindow";
+import ChatButton from "@/components/Chat/ChatButton";
 import UserHeader from "@/components/User/userHeader";
 
 export default function PropertyDetailsPage() {
@@ -19,8 +18,6 @@ export default function PropertyDetailsPage() {
   const [property, setProperty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showChat, setShowChat] = useState(false);
-  const [chatId, setChatId] = useState<string | null>(null);
 
   // Get current user's real UID
   const userUID = typeof window !== "undefined" ? auth.currentUser?.uid : null;
@@ -45,18 +42,6 @@ export default function PropertyDetailsPage() {
     if (propertyId) fetchProperty();
   }, [propertyId]);
 
-  async function handleOpenChat() {
-    if (!userUID || !property) return;
-    // Pass real UIDs directly to getOrCreateChat
-    const chatId = await getOrCreateChat(
-      propertyId as string,
-      userUID,
-      property.agentUID,
-    );
-    setChatId(chatId);
-    setShowChat(true);
-  }
-
   if (loading) return <div className="p-8 text-center">Loading...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
   if (!property) return null;
@@ -66,6 +51,15 @@ export default function PropertyDetailsPage() {
     (img) => img && img !== "",
   );
   const placeholder = "/images/property-placeholder.png";
+
+  // Debug: Log property data
+  console.log("Property data for chat:", {
+    propertyId: propertyId,
+    agentUID: property.agentUID,
+    agentId: property.agentId,
+    agentName: property.agentName,
+    fullProperty: property,
+  });
 
   return (
     <>
@@ -106,6 +100,7 @@ export default function PropertyDetailsPage() {
                 </div>
               )}
             </div>
+
             {/* Property Info */}
             <div className="flex flex-col gap-2">
               <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
@@ -137,6 +132,7 @@ export default function PropertyDetailsPage() {
                 {property.description}
               </p>
             </div>
+
             {/* Agent Info Card */}
             <div className="flex flex-col gap-1 rounded-lg bg-gray-100 p-4 shadow-sm dark:bg-gray-800">
               <div className="mb-1 font-semibold text-gray-900 dark:text-white">
@@ -149,22 +145,16 @@ export default function PropertyDetailsPage() {
                 Agent ID: {property.agentId}
               </div>
             </div>
+
             {/* Chat Button */}
-            <button
-              className="bg-primary hover:bg-primary/90 mt-2 w-full rounded px-6 py-3 font-semibold text-white transition"
-              onClick={handleOpenChat}
-            >
-              Chat with Agent
-            </button>
-            {showChat && chatId && (
-              <div className="mt-8">
-                <ChatWindow
-                  chatId={chatId}
-                  userId={userUID}
-                  agentId={property.agentUID}
-                />
-              </div>
-            )}
+            <div className="flex justify-center">
+              <ChatButton
+                propertyId={propertyId as string}
+                agentUID={property.agentUID || ""}
+                agentID={property.agentId || ""}
+                className="w-full sm:w-auto"
+              />
+            </div>
           </div>
         )}
       </div>
