@@ -6,10 +6,13 @@ import ThemeToggle from "@/app/user/userprofile/ThemeToggle";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { Menu } from "@headlessui/react";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
 const userMenu = [
   { title: "Dashboard", path: "/user/user-dashboard" },
   { title: "My Properties", path: "/user/userPropertyList" },
+  { title: "Agent Verified", path: "/user/userToagent" },
 ];
 
 export default function UserHeader() {
@@ -260,18 +263,36 @@ export default function UserHeader() {
               {item.title}
             </Link>
           ))}
-          <Link
-            href="/user/userCalculator"
-            className="hover:text-primary rounded px-3 py-2 font-medium text-white transition-colors duration-200"
-          >
-            Loan Calculator
-          </Link>
-          <Link
-            href="/user/userChatbot"
-            className="hover:text-primary rounded px-3 py-2 font-medium text-white transition-colors duration-200"
-          >
-            Chatbot
-          </Link>
+          <Menu as="div" className="relative inline-block text-left">
+            <Menu.Button className="hover:text-primary flex items-center gap-1 rounded px-3 py-2 font-medium text-white transition-colors duration-200">
+              Other
+              <ChevronDownIcon className="h-4 w-4" />
+            </Menu.Button>
+            <Menu.Items className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-md bg-[#23272f] shadow-lg ring-1 ring-black/5 focus:outline-none">
+              <div className="py-1">
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link
+                      href="/user/userCalculator"
+                      className={`block px-4 py-2 text-sm text-white transition-colors duration-200 ${active ? "bg-gray-700" : ""}`}
+                    >
+                      Loan Calculator
+                    </Link>
+                  )}
+                </Menu.Item>
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link
+                      href="/user/userChatbot"
+                      className={`block px-4 py-2 text-sm text-white transition-colors duration-200 ${active ? "bg-gray-700" : ""}`}
+                    >
+                      Chatbot
+                    </Link>
+                  )}
+                </Menu.Item>
+              </div>
+            </Menu.Items>
+          </Menu>
         </nav>
         {/* Spacer to push sign out/theme to right */}
         <div className="flex-1" />

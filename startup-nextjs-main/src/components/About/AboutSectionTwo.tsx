@@ -11,46 +11,49 @@ const AboutSectionTwo = () => {
               data-wow-delay=".15s"
             >
               <Image
-                src="/images/about/about-image-2.svg"
+                src="/images/property/smart&tech.png"
                 alt="about image"
                 fill
                 className="drop-shadow-three dark:hidden dark:drop-shadow-none"
               />
               <Image
-                src="/images/about/about-image-2-dark.svg"
+                src="/images/property/smart&tech.png"
                 alt="about image"
                 fill
-                className="hidden drop-shadow-three dark:block dark:drop-shadow-none"
+                className="drop-shadow-three hidden dark:block dark:drop-shadow-none"
               />
             </div>
           </div>
           <div className="w-full px-4 lg:w-1/2">
             <div className="max-w-[470px]">
               <div className="mb-9">
-                <h3 className="mb-4 text-xl font-bold text-black dark:text-white sm:text-2xl lg:text-xl xl:text-2xl">
-                  Bug free code
+                <h3 className="mb-4 text-xl font-bold text-black sm:text-2xl lg:text-xl xl:text-2xl dark:text-white">
+                  100% Verified Listings
                 </h3>
-                <p className="text-base font-medium leading-relaxed text-body-color sm:text-lg sm:leading-relaxed">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed
-                  do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                <p className="text-body-color text-base leading-relaxed font-medium sm:text-lg sm:leading-relaxed">
+                  Every property on DeveloperShield is thoroughly verified for
+                  authenticity and compliance, giving you peace of mind and
+                  confidence in your next move.
                 </p>
               </div>
               <div className="mb-9">
-                <h3 className="mb-4 text-xl font-bold text-black dark:text-white sm:text-2xl lg:text-xl xl:text-2xl">
-                  Premier support
+                <h3 className="mb-4 text-xl font-bold text-black sm:text-2xl lg:text-xl xl:text-2xl dark:text-white">
+                  Dedicated Support
                 </h3>
-                <p className="text-base font-medium leading-relaxed text-body-color sm:text-lg sm:leading-relaxed">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed
-                  do eiusmod tempor incididunt.
+                <p className="text-body-color text-base leading-relaxed font-medium sm:text-lg sm:leading-relaxed">
+                  Our expert team is here to assist you at every stage, from
+                  listing to closing. Get fast, friendly help whenever you need
+                  it.
                 </p>
               </div>
               <div className="mb-1">
-                <h3 className="mb-4 text-xl font-bold text-black dark:text-white sm:text-2xl lg:text-xl xl:text-2xl">
-                  Next.js
+                <h3 className="mb-4 text-xl font-bold text-black sm:text-2xl lg:text-xl xl:text-2xl dark:text-white">
+                  Smart, Secure Technology
                 </h3>
-                <p className="text-base font-medium leading-relaxed text-body-color sm:text-lg sm:leading-relaxed">
-                  Lorem ipsum dolor sit amet, sed do eiusmod tempor incididunt
-                  consectetur adipiscing elit setim.
+                <p className="text-body-color text-base leading-relaxed font-medium sm:text-lg sm:leading-relaxed">
+                  We use advanced technology—including AI-powered fraud
+                  detection and secure document workflows—to protect your
+                  interests and streamline your experience.
                 </p>
               </div>
             </div>

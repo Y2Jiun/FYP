@@ -15,7 +15,7 @@ const Blog = () => {
     <>
       <Breadcrumb
         pageName="Blog Grid"
-        description="Lorem ipsum dolor sit amet, consectetur adipiscing elit. In varius eros eget sapien consectetur ultrices. Ut quis dapibus libero."
+        description="Explore the latest insights, tips, and news in property technology, real estate trends, and digital tools for buyers, sellers, and agents. Stay informed with DeveloperShield."
       />
 
       <section className="pt-[120px] pb-[120px]">

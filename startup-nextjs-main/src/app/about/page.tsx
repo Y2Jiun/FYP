@@ -14,8 +14,8 @@ const AboutPage = () => {
   return (
     <>
       <Breadcrumb
-        pageName="About Page"
-        description="Lorem ipsum dolor sit amet, consectetur adipiscing elit. In varius eros eget sapien consectetur ultrices. Ut quis dapibus libero."
+        pageName="About DeveloperShield"
+        description="DeveloperShield is a modern platform dedicated to making property transactions safer, smarter, and more transparent. Learn more about our mission, our technology, and how we empower buyers, sellers, and agents."
       />
       <AboutSectionOne />
       <AboutSectionTwo />

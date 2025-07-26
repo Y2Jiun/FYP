@@ -1,7 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import AgentHeader from "@/components/Agent/agentHeader";
-import { HiOutlineBell, HiSpeakerphone } from "react-icons/hi";
+import {
+  HiOutlineBell,
+  HiSpeakerphone,
+  HiExclamationCircle,
+} from "react-icons/hi";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 
@@ -53,8 +57,12 @@ export default function AgentNotificationPage() {
                   className="flex items-start gap-4 rounded-lg border border-gray-700 bg-gray-800 p-5 shadow-md"
                 >
                   <div className="mt-1">
-                    {notif.type === 2 ? (
+                    {notif.type === 3 ? (
+                      <HiExclamationCircle className="h-7 w-7 text-red-400" />
+                    ) : notif.type === 2 ? (
                       <HiSpeakerphone className="h-7 w-7 text-yellow-400" />
+                    ) : notif.type === 1 ? (
+                      <HiSpeakerphone className="h-7 w-7 text-purple-400" />
                     ) : (
                       <HiOutlineBell className="h-7 w-7 text-blue-400" />
                     )}
@@ -66,12 +74,22 @@ export default function AgentNotificationPage() {
                       </div>
                       <span
                         className={`rounded px-2 py-1 text-xs font-bold ${
-                          notif.type === 2
-                            ? "bg-yellow-500/20 text-yellow-300"
-                            : "bg-blue-500/20 text-blue-300"
+                          notif.type === 3
+                            ? "bg-red-500/20 text-red-300"
+                            : notif.type === 2
+                              ? "bg-yellow-500/20 text-yellow-300"
+                              : notif.type === 1
+                                ? "bg-purple-500/20 text-purple-300"
+                                : "bg-blue-500/20 text-blue-300"
                         }`}
                       >
-                        {notif.type === 2 ? "Announcement" : "Notification"}
+                        {notif.type === 3
+                          ? "Warning"
+                          : notif.type === 2
+                            ? "Alert"
+                            : notif.type === 1
+                              ? "Announcement"
+                              : "Notification"}
                       </span>
                     </div>
                     <div className="mt-1 text-sm text-gray-300">

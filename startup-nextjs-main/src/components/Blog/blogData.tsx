@@ -3,10 +3,10 @@ import { Blog } from "@/types/blog";
 const blogData: Blog[] = [
   {
     id: 1,
-    title: "Best UI components for modern websites",
+    title: "How to Choose the Right Property",
     paragraph:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras sit amet dictum neque, laoreet dolor.",
-    image: "/images/blog/blog-01.jpg",
+      "Discover the essential UI components that can elevate your property platform, improve user experience, and boost engagement for buyers and agents alike.",
+    image: "/images/property/property-ex-1.png",
     author: {
       name: "Samuyl Joshi",
       image: "/images/blog/author-01.png",
@@ -17,10 +17,10 @@ const blogData: Blog[] = [
   },
   {
     id: 2,
-    title: "9 simple ways to improve your design skills",
+    title: "Top Features Buyers Want in 2024",
     paragraph:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras sit amet dictum neque, laoreet dolor.",
-    image: "/images/blog/blog-02.jpg",
+      "Level up your real estate website with these practical design tips—perfect for agents, developers, and anyone looking to create a more attractive, effective platform.",
+    image: "/images/property/property-ex-2.png",
     author: {
       name: "Musharof Chy",
       image: "/images/blog/author-02.png",
@@ -31,10 +31,10 @@ const blogData: Blog[] = [
   },
   {
     id: 3,
-    title: "Tips to quickly improve your coding speed.",
+    title: "The Future of Smart Homes in Malaysia",
     paragraph:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras sit amet dictum neque, laoreet dolor.",
-    image: "/images/blog/blog-03.jpg",
+      "Explore proven strategies and tools to help you code faster and smarter—whether you're building property apps, dashboards, or automation tools.",
+    image: "/images/property/property-ex-3.png",
     author: {
       name: "Lethium Deo",
       image: "/images/blog/author-03.png",
