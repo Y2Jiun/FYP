@@ -291,6 +291,16 @@ export default function UserHeader() {
                     </Link>
                   )}
                 </Menu.Item>
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link
+                      href="/user/userFAQ"
+                      className={`block px-4 py-2 text-sm text-white transition-colors duration-200 ${active ? "bg-gray-700" : ""}`}
+                    >
+                      FAQ
+                    </Link>
+                  )}
+                </Menu.Item>
               </div>
             </Menu.Items>
           </Menu>

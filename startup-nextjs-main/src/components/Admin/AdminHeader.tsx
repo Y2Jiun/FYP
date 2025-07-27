@@ -18,7 +18,10 @@ const adminMenu = [
   },
   {
     title: "Content",
-    submenu: [{ title: "Blog/News", path: "/admin/adminContentManagement" }],
+    submenu: [
+      { title: "Blog/News", path: "/admin/adminContentManagement" },
+      { title: "FAQ", path: "/admin/faqManagement" },
+    ],
   },
   {
     title: "Property",

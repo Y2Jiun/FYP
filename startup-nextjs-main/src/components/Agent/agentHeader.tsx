@@ -11,7 +11,7 @@ const agentMenu = [
   { title: "Dashboard", path: "/agent/agent-dashboard" },
   { title: "Properties", path: "/agent/agentPropertyList" },
   { title: "News", path: "/agent/agentNews" },
-  // Remove Notifications from menu bar
+  { title: "FAQ", path: "/agent/agentFAQ" },
 ];
 
 export default function AgentHeader() {
