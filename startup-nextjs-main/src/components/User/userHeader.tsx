@@ -12,6 +12,7 @@ import { ChevronDownIcon } from "@heroicons/react/24/outline";
 const userMenu = [
   { title: "Dashboard", path: "/user/user-dashboard" },
   { title: "My Properties", path: "/user/userPropertyList" },
+  { title: "News", path: "/user/userNews" },
   { title: "Agent Verified", path: "/user/userToagent" },
 ];
 

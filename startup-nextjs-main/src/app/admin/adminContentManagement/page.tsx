@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -17,15 +17,34 @@ import AdminHeader from "@/components/Admin/AdminHeader";
 
 const MyEditor = dynamic(() => import("@/components/MyEditor"), { ssr: false });
 
-export default function adminContentManagementPage() {
+interface StaticPage {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  lastUpdated?: any;
+  createdBy?: string;
+}
+
+interface NewsItem {
+  title?: string;
+  contentSnippet?: string;
+  link?: string;
+  pubDate?: string;
+  content?: string;
+  enclosure?: { url?: string };
+  "media:content"?: { $?: { url?: string } };
+}
+
+export default function AdminContentManagementPage() {
   const [tab, setTab] = useState("news");
   // Static pages state
-  const [staticPages, setStaticPages] = useState<any[]>([]);
-  const [editingPage, setEditingPage] = useState<any | null>(null);
+  const [staticPages, setStaticPages] = useState<StaticPage[]>([]);
+  const [editingPage, setEditingPage] = useState<StaticPage | null>(null);
   const [form, setForm] = useState({ title: "", slug: "", content: "" });
   const [loading, setLoading] = useState(false);
   // News state
-  const [news, setNews] = useState<any[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [newsLoading, setNewsLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -33,25 +52,46 @@ export default function adminContentManagementPage() {
   // Fetch static pages
   const fetchStaticPages = async () => {
     setLoading(true);
-    const snapshot = await getDocs(collection(db, "static"));
-    setStaticPages(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-    setLoading(false);
+    try {
+      const snapshot = await getDocs(collection(db, "static"));
+      setStaticPages(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      setError("Failed to fetch static pages");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Fetch news from RSS
   const fetchNews = async () => {
     setNewsLoading(true);
-    const res = await fetch("/api/govnews");
-    const items = await res.json();
-    setNews(items);
-    setNewsLoading(false);
+    try {
+      console.log("Fetching news from API...");
+      const res = await fetch("/api/govnews");
+      console.log("API response status:", res.status);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch news: ${res.status}`);
+      }
+      const items = await res.json();
+      console.log("News items received:", items.length);
+      console.log("Sample news item:", items[0]);
+      console.log("All news items:", items);
+      setNews(items);
+    } catch (err: any) {
+      console.error("Error fetching news:", err);
+      setError(`Failed to fetch news: ${err.message}`);
+      setNews([]);
+    } finally {
+      setNewsLoading(false);
+    }
   };
 
   // CRUD handlers
-  const handleEdit = (page: any) => {
+  const handleEdit = (page: StaticPage) => {
     setEditingPage(page);
     setForm({ title: page.title, slug: page.slug, content: page.content });
   };
+
   const handleDelete = async (id: string) => {
     setMessage("");
     setError("");
@@ -63,6 +103,7 @@ export default function adminContentManagementPage() {
       setError("Failed to delete page. Please try again.");
     }
   };
+
   const handleSave = async () => {
     setMessage("");
     setError("");
@@ -95,35 +136,20 @@ export default function adminContentManagementPage() {
       setError("Failed to save page. Please try again.");
     }
   };
+
   const handleCancel = () => {
     setForm({ title: "", slug: "", content: "" });
     setEditingPage(null);
   };
 
   // Initial fetch
-  useState(() => {
+  useEffect(() => {
     fetchStaticPages();
     fetchNews();
-  });
+  }, []);
 
-  // Property-related keywords for filtering
-  const propertyKeywords = [
-    "property",
-    "real estate",
-    "housing",
-    "perumahan",
-    "rumah",
-    "tanah",
-    "kediaman",
-  ];
-
-  const propertyNews = news.filter((item) =>
-    propertyKeywords.some(
-      (keyword) =>
-        item.title?.toLowerCase().includes(keyword) ||
-        item.contentSnippet?.toLowerCase().includes(keyword),
-    ),
-  );
+  // Display all news items (API already filters for property-related news)
+  const displayNews = news;
 
   return (
     <>
@@ -249,52 +275,53 @@ export default function adminContentManagementPage() {
               </h2>
               {newsLoading ? (
                 <p className="text-gray-200">Loading news...</p>
+              ) : displayNews.length === 0 ? (
+                <div className="text-center">
+                  <p className="text-gray-200">
+                    No news available at the moment.
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    Please try again later.
+                  </p>
+                </div>
               ) : (
                 <ul className="space-y-8">
-                  {news
-                    .filter((item) =>
-                      propertyKeywords.some(
-                        (keyword) =>
-                          item.title?.toLowerCase().includes(keyword) ||
-                          item.contentSnippet?.toLowerCase().includes(keyword),
-                      ),
-                    )
-                    .map((item, idx) => {
-                      // Try to get image from enclosure or media:content
-                      const imageUrl =
-                        item.enclosure?.url ||
-                        (item["media:content"] &&
-                          item["media:content"]["$"]?.url) ||
-                        null;
-                      return (
-                        <li key={idx} className="border-b border-gray-700 pb-6">
-                          {imageUrl && (
-                            <img
-                              src={imageUrl}
-                              alt="news"
-                              className="mb-2 max-h-48 w-full rounded object-cover"
-                            />
-                          )}
-                          <a
-                            href={item.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xl font-bold text-blue-300 hover:underline"
-                          >
-                            {item.title}
-                          </a>
-                          <div className="mb-1 text-sm text-gray-300">
-                            {item.pubDate}
-                          </div>
-                          <div
-                            className="text-base text-gray-100"
-                            dangerouslySetInnerHTML={{
-                              __html: item.contentSnippet || item.content || "",
-                            }}
+                  {displayNews.map((item, idx) => {
+                    // Try to get image from enclosure or media:content
+                    const imageUrl =
+                      item.enclosure?.url ||
+                      (item["media:content"] &&
+                        item["media:content"]["$"]?.url) ||
+                      null;
+                    return (
+                      <li key={idx} className="border-b border-gray-700 pb-6">
+                        {imageUrl && (
+                          <img
+                            src={imageUrl}
+                            alt="news"
+                            className="mb-2 max-h-48 w-full rounded object-cover"
                           />
-                        </li>
-                      );
-                    })}
+                        )}
+                        <a
+                          href={item.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xl font-bold text-blue-300 hover:underline"
+                        >
+                          {item.title}
+                        </a>
+                        <div className="mb-1 text-sm text-gray-300">
+                          {item.pubDate}
+                        </div>
+                        <div
+                          className="text-base text-gray-100"
+                          dangerouslySetInnerHTML={{
+                            __html: item.contentSnippet || item.content || "",
+                          }}
+                        />
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>
