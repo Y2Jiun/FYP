@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import ThemeToggle from "@/app/agent/agentprofile/ThemeToggle";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  onSnapshot,
+} from "firebase/firestore";
 
 const agentMenu = [
   { title: "Dashboard", path: "/agent/agent-dashboard" },
@@ -17,6 +24,7 @@ const agentMenu = [
 export default function AgentHeader() {
   const router = useRouter();
   const [profilePic, setProfilePic] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const fetchProfilePic = async () => {
@@ -31,6 +39,42 @@ export default function AgentHeader() {
       }
     };
     fetchProfilePic();
+  }, []);
+
+  useEffect(() => {
+    let unsub = null;
+    const listenUnreadCount = async () => {
+      const email = localStorage.getItem("userEmail");
+      if (!email) return;
+      // Get userID and firebaseUID
+      const userQ = query(collection(db, "users"), where("email", "==", email));
+      const userSnap = await getDocs(userQ);
+      if (userSnap.empty) return;
+      const userData = userSnap.docs[0].data();
+      const userId = userData.userID;
+      const firebaseUID = userData.firebaseUID;
+      // Listen for notifications
+      const notifQ = query(
+        collection(db, "notification"),
+        where("audience", "in", [2, 3]),
+        orderBy("createdAt", "desc"),
+      );
+      unsub = onSnapshot(notifQ, (notifSnap) => {
+        let unread = 0;
+        notifSnap.docs.forEach((doc) => {
+          const notif = doc.data();
+          const readBy = notif.readBy || {};
+          if (!readBy[userId] && !readBy[firebaseUID]) {
+            unread++;
+          }
+        });
+        setUnreadCount(unread);
+      });
+    };
+    listenUnreadCount();
+    return () => {
+      if (unsub) unsub();
+    };
   }, []);
 
   const handleSignOut = () => {
@@ -291,7 +335,7 @@ export default function AgentHeader() {
           {/* Notification icon (moved to right of ThemeToggle) */}
           <Link href="/agent/agentNotification">
             <button
-              className="ml-2 flex items-center justify-center rounded-full bg-gray-700 p-2 transition hover:bg-gray-600"
+              className="relative ml-2 flex items-center justify-center rounded-full bg-gray-700 p-2 transition hover:bg-gray-600"
               title="Notifications"
             >
               <svg
@@ -308,6 +352,11 @@ export default function AgentHeader() {
                   d="M14.25 17.25v.75a2.25 2.25 0 01-4.5 0v-.75m9-2.25V11a6.75 6.75 0 10-13.5 0v3.99c0 .414-.336.75-.75.75h-.75a.75.75 0 000 1.5h18a.75.75 0 000-1.5h-.75a.75.75 0 01-.75-.75z"
                 />
               </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 rounded-full bg-red-500 px-2 py-0.5 text-xs text-white">
+                  {unreadCount}
+                </span>
+              )}
             </button>
           </Link>
         </div>

@@ -7,26 +7,66 @@ import {
   HiExclamationCircle,
 } from "react-icons/hi";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 
 export default function UserNotificationPage() {
   const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [userId, setUserId] = useState("");
+  const [firebaseUID, setFirebaseUID] = useState("");
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      const q = query(
+    const fetchUserInfoAndNotifications = async () => {
+      const email = localStorage.getItem("userEmail");
+      if (!email) return;
+      // Fetch user info
+      const q = query(collection(db, "users"), where("email", "==", email));
+      const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) return;
+      const userData = querySnapshot.docs[0].data();
+      const userId = userData.userID;
+      const firebaseUID = userData.firebaseUID;
+      setUserId(userId);
+      setFirebaseUID(firebaseUID);
+
+      // Fetch notifications
+      const notifQ = query(
         collection(db, "notification"),
         where("audience", "in", [3, "user"]),
         orderBy("createdAt", "desc"),
       );
-      const querySnapshot = await getDocs(q);
-      const notifs = querySnapshot.docs.map((doc) => ({
+      const notifSnapshot = await getDocs(notifQ);
+      const notifs = notifSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
       setNotifications(notifs);
+
+      // Count unread and mark as read
+      let unread = 0;
+      for (const notif of notifs) {
+        const readBy = notif.readBy || {};
+        if (!readBy[userId] && !readBy[firebaseUID]) {
+          unread++;
+          // Mark as read in Firestore
+          const notifRef = doc(db, "notification", notif.id);
+          await updateDoc(notifRef, {
+            [`readBy.${userId}`]: true,
+            [`readBy.${firebaseUID}`]: true,
+          });
+        }
+      }
+      setUnreadCount(unread);
     };
-    fetchNotifications();
+    fetchUserInfoAndNotifications();
   }, []);
 
   return (

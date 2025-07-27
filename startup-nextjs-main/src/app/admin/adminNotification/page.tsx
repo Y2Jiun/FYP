@@ -15,7 +15,13 @@ import {
 import AdminHeader from "@/components/Admin/AdminHeader";
 
 const audienceMap = { 1: "User", 2: "Agent", 3: "All" };
-const typeMap = { 0: "Notification", 1: "Announcement" };
+// Update typeMap to include all types
+const typeMap = {
+  0: "Notification",
+  1: "Announcement",
+  2: "Alert",
+  3: "Warning",
+};
 
 export default function AdminNotificationPage() {
   const [form, setForm] = useState({
