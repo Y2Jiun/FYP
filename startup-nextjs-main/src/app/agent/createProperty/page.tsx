@@ -12,6 +12,11 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import {
+  ref as storageRef,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
 
 // Add this to declare window.cloudinary for TypeScript
 declare global {
@@ -39,6 +44,12 @@ const malaysianStates = [
   "Kedah",
 ];
 
+const documentTypes = [
+  { key: "title_deed", label: "Title Deed" },
+  { key: "building_plan", label: "Building Plan" },
+  { key: "other", label: "Other Document" },
+];
+
 const initialForm = {
   title: "",
   address: "",
@@ -54,6 +65,27 @@ const initialForm = {
   image1: "",
   image2: "",
   image3: "",
+  // Add new fields with sensible defaults
+  agentId: "",
+  agentName: "",
+  agentUID: "",
+  ownerId: "",
+  userUID: "",
+  verificationStatus: { overall: "pending" },
+  documentVerification: {
+    categories: {},
+    documents: [],
+    lastUpdated: "",
+    notes: "",
+    overallProgress: "",
+    ownership: {
+      progress: 0,
+      status: "pending",
+      submittedAt: "",
+      verifiedAt: "",
+      verifiedBy: "",
+    },
+  },
 };
 
 export default function CreatePropertyPage() {
@@ -63,6 +95,13 @@ export default function CreatePropertyPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userData, setUserData] = useState<any>(null);
   const router = useRouter();
+
+  // Add state for document uploads
+  const [uploadedDocuments, setUploadedDocuments] = useState([
+    { type: "title_deed", name: "", url: "", size: 0 },
+    { type: "building_plan", name: "", url: "", size: 0 },
+    { type: "other", name: "", url: "", size: 0 },
+  ]);
 
   // Get current user data on component mount
   useEffect(() => {
@@ -127,6 +166,34 @@ export default function CreatePropertyPage() {
     );
   };
 
+  const handleDocumentUpload = (idx: number) => {
+    if (!window.cloudinary) return;
+    window.cloudinary.openUploadWidget(
+      {
+        cloudName: "dvl5whm1n",
+        uploadPreset: "derrick",
+        sources: ["local", "url", "camera"],
+        multiple: false,
+        cropping: false,
+        defaultSource: "local",
+      },
+      (error: any, result: any) => {
+        if (!error && result && result.event === "success") {
+          setUploadedDocuments((prev) => {
+            const newDocs = [...prev];
+            newDocs[idx] = {
+              ...newDocs[idx],
+              name: result.info.original_filename,
+              url: result.info.secure_url,
+              size: result.info.bytes,
+            };
+            return newDocs;
+          });
+        }
+      },
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -154,27 +221,92 @@ export default function CreatePropertyPage() {
         status: "pending",
         createdAt: new Date(),
         updatedAt: new Date(),
-
         // Agent information (current logged-in user)
         agentId: userData.userID || "",
         agentName: userData.username || "",
         agentUID: currentUser.uid,
-
         // Owner information (all users can view, so set to current user for now)
         ownerId: userData.userID || "",
         userUID: currentUser.uid,
-
         // Verification status
         verificationStatus: {
           overall: "pending",
+          documents: "pending",
+          details: "pending",
+          images: "pending",
+        },
+        // Document verification (default structure)
+        documentVerification: {
+          categories: {
+            ownership: {
+              status: "pending",
+              progress: 0,
+              documents: [],
+              submittedAt: "",
+              verifiedAt: "",
+              verifiedBy: "",
+              notes: "",
+            },
+            legal: {
+              status: "pending",
+              progress: 0,
+              documents: [],
+              submittedAt: "",
+              verifiedAt: "",
+              verifiedBy: "",
+              notes: "",
+            },
+            financial: {
+              status: "pending",
+              progress: 0,
+              documents: [],
+              submittedAt: "",
+              verifiedAt: "",
+              verifiedBy: "",
+              notes: "",
+            },
+            structural: {
+              status: "pending",
+              progress: 0,
+              documents: [],
+              submittedAt: "",
+              verifiedAt: "",
+              verifiedBy: "",
+              notes: "",
+            },
+          },
+          overallProgress: 0,
+          status: "pending",
+          progress: 0,
+          submittedAt: new Date(),
+          lastUpdated: new Date(),
         },
       };
 
       // Create the property
       await setDoc(doc(db, "properties", propertyId), propertyData);
 
-      // Note: Chat document will be created automatically when a user starts chatting
-      // This prevents permission issues with empty userUID/agentUID fields
+      for (let i = 0; i < uploadedDocuments.length; i++) {
+        const docUpload = uploadedDocuments[i];
+        if (docUpload.url) {
+          const docId = `${propertyId}_DOC${i + 1}`;
+          const docData = {
+            documentId: docId,
+            propertyId,
+            documentType: documentTypes[i].key,
+            documentName: docUpload.name,
+            fileUrl: docUpload.url,
+            fileSize: docUpload.size,
+            uploadedBy: userData.userID,
+            uploadedAt: new Date(),
+            verificationStatus: "pending",
+            verifiedBy: "",
+            verifiedAt: "",
+            verificationNotes: "",
+          };
+          await setDoc(doc(db, "propertyDocuments", docId), docData);
+        }
+      }
 
       router.push("/agent/agentPropertyList");
     } catch (err) {
@@ -188,6 +320,35 @@ export default function CreatePropertyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-8 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        {/* Back Icon */}
+        <button
+          className="mb-4 ml-2 flex h-12 w-12 items-center justify-center rounded-full bg-blue-300 shadow-lg transition-colors duration-200 hover:bg-blue-400"
+          onClick={() => router.push("/agent/agentPropertyList")}
+          title="Back to Property List"
+        >
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 28 28"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M18 7L11 14L18 21"
+              stroke="#fff"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M11 14H23"
+              stroke="#fff"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
         {/* Header Section */}
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl dark:text-white">
@@ -405,6 +566,44 @@ export default function CreatePropertyPage() {
                         alt={`Property image ${idx + 1}`}
                         className="h-32 w-full object-cover"
                       />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Upload Documents Card */}
+          <div className="rounded-xl bg-white p-6 shadow-lg sm:p-8 dark:bg-gray-800">
+            <h2 className="mb-6 text-2xl font-semibold text-gray-900 dark:text-white">
+              Upload Documents
+            </h2>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {documentTypes.map((docType, idx) => (
+                <div key={docType.key} className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {docType.label}
+                  </label>
+                  <button
+                    type="button"
+                    className="w-full rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3 font-medium text-white transition-all hover:from-blue-600 hover:to-blue-700 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                    onClick={() => handleDocumentUpload(idx)}
+                  >
+                    Upload {docType.label}
+                  </button>
+                  {uploadedDocuments[idx].url && (
+                    <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-600">
+                      <a
+                        href={uploadedDocuments[idx].url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block p-2 text-blue-600 underline dark:text-blue-400"
+                      >
+                        {uploadedDocuments[idx].name}
+                      </a>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {(uploadedDocuments[idx].size / 1024).toFixed(1)} KB
+                      </div>
                     </div>
                   )}
                 </div>

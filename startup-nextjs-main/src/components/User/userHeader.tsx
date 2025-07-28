@@ -87,7 +87,7 @@ export default function UserHeader() {
   };
 
   return (
-    <header className="header top-0 left-0 z-40 flex w-full items-center border-b border-gray-700 bg-[#181c23] shadow-lg">
+    <header className="header top-0 left-0 z-40 flex w-full items-center border-b border-gray-700 bg-white shadow-lg dark:bg-[#181c23]">
       <div className="container flex items-center py-4">
         {/* Logo */}
         <div className="flex items-center gap-2">
@@ -291,7 +291,7 @@ export default function UserHeader() {
               </svg>
 
               {/* Logo Text */}
-              <span className="text-xl font-bold tracking-wide text-white">
+              <span className="text-xl font-bold tracking-wide text-gray-900 dark:text-white">
                 DeveloperShield
               </span>
             </div>
@@ -303,13 +303,13 @@ export default function UserHeader() {
             <Link
               key={item.title}
               href={item.path}
-              className="hover:text-primary rounded px-3 py-2 font-medium text-white transition-colors duration-200"
+              className="hover:text-primary rounded px-3 py-2 font-medium text-gray-900 dark:text-white transition-colors duration-200"
             >
               {item.title}
             </Link>
           ))}
           <Menu as="div" className="relative inline-block text-left">
-            <Menu.Button className="hover:text-primary flex items-center gap-1 rounded px-3 py-2 font-medium text-white transition-colors duration-200">
+            <Menu.Button className="hover:text-primary flex items-center gap-1 rounded px-3 py-2 font-medium text-gray-900 dark:text-white transition-colors duration-200">
               Other
               <ChevronDownIcon className="h-4 w-4" />
             </Menu.Button>
@@ -319,7 +319,7 @@ export default function UserHeader() {
                   {({ active }) => (
                     <Link
                       href="/user/userCalculator"
-                      className={`block px-4 py-2 text-sm text-white transition-colors duration-200 ${active ? "bg-gray-700" : ""}`}
+                      className={`block px-4 py-2 text-sm text-gray-900 dark:text-white transition-colors duration-200 ${active ? "bg-gray-700" : ""}`}
                     >
                       Loan Calculator
                     </Link>
@@ -329,7 +329,7 @@ export default function UserHeader() {
                   {({ active }) => (
                     <Link
                       href="/user/userChatbot"
-                      className={`block px-4 py-2 text-sm text-white transition-colors duration-200 ${active ? "bg-gray-700" : ""}`}
+                      className={`block px-4 py-2 text-sm text-gray-900 dark:text-white transition-colors duration-200 ${active ? "bg-gray-700" : ""}`}
                     >
                       Chatbot
                     </Link>
@@ -339,7 +339,7 @@ export default function UserHeader() {
                   {({ active }) => (
                     <Link
                       href="/user/userFAQ"
-                      className={`block px-4 py-2 text-sm text-white transition-colors duration-200 ${active ? "bg-gray-700" : ""}`}
+                      className={`block px-4 py-2 text-sm text-gray-900 dark:text-white transition-colors duration-200 ${active ? "bg-gray-700" : ""}`}
                     >
                       FAQ
                     </Link>

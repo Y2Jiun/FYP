@@ -8,6 +8,7 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { storage } from "@/lib/firebase";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import imageCompression from "browser-image-compression";
+import PropertyVerificationHistoryTimeline from "@/components/Property/PropertyVerificationHistoryTimeline";
 
 interface PropertyDetails {
   id: string;
@@ -556,6 +557,9 @@ export default function AgentPropertyDetails() {
                 </div>
               </div>
             </div>
+            {property && (
+              <PropertyVerificationHistoryTimeline propertyId={property.id} />
+            )}
           </div>
         </div>
       </div>

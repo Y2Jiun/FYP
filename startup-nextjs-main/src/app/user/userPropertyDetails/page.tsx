@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import UserHeader from "@/components/User/userHeader";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import PropertyVerificationHistoryTimeline from "@/components/Property/PropertyVerificationHistoryTimeline";
 
 interface PropertyDetails {
   id: string;
@@ -261,6 +262,9 @@ export default function UserPropertyDetails() {
                 </div>
               </div>
             </div>
+            {property && (
+              <PropertyVerificationHistoryTimeline propertyId={property.id} />
+            )}
           </div>
         </div>
       </div>

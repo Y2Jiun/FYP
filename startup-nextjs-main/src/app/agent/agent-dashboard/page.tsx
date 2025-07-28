@@ -66,27 +66,27 @@ export default function AgentDashboardPage() {
     <>
       <AgentHeader />
       <div className="flex min-h-screen items-center justify-center bg-transparent">
-        <div className="w-full max-w-2xl rounded-xl border border-gray-700 bg-[#23272f] p-10 shadow-xl">
-          <h1 className="mb-4 text-center text-3xl font-extrabold text-white">
+        <div className="w-full max-w-2xl rounded-xl border border-gray-700 bg-white p-10 shadow-xl dark:bg-gray-800">
+          <h1 className="mb-4 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
             Welcome, Agent!
           </h1>
           {userData && (
             <div className="mb-8 text-center">
               <p className="text-lg text-gray-200">
                 User ID:{" "}
-                <span className="font-semibold text-white">
+                <span className="font-semibold text-gray-900 dark:text-white">
                   {userData.userID}
                 </span>
               </p>
               <p className="text-lg text-gray-200">
                 Username:{" "}
-                <span className="font-semibold text-white">
+                <span className="font-semibold text-gray-900 dark:text-white">
                   {userData.username}
                 </span>
               </p>
               <p className="text-lg text-gray-200">
                 Email:{" "}
-                <span className="font-semibold text-white">
+                <span className="font-semibold text-gray-900 dark:text-white">
                   {userData.email}
                 </span>
               </p>

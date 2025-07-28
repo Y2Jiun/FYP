@@ -30,9 +30,12 @@ const adminMenu = [
         title: "Property Verification & Documentation",
         path: "/admin/propertyVerification",
       },
+      {
+        title: "Document Verification",
+        path: "/admin/adminVerificationQueue",
+      },
     ],
   },
-  // Add Report as a top-level menu item
   { title: "Report", path: "/admin/adminReport" },
 ];
 
@@ -64,7 +67,7 @@ export default function AdminHeader() {
   };
 
   return (
-    <header className="header top-0 left-0 z-40 flex w-full items-center border-b border-gray-700 bg-[#181c23] shadow-lg">
+    <header className="header top-0 left-0 z-40 flex w-full items-center border-b border-gray-700 bg-white shadow-lg dark:bg-[#181c23]">
       <div className="container flex items-center py-4">
         {/* Logo */}
         <div className="flex items-center gap-2">
@@ -271,7 +274,7 @@ export default function AdminHeader() {
               </svg>
 
               {/* Logo Text */}
-              <span className="text-xl font-bold tracking-wide text-white">
+              <span className="text-xl font-bold tracking-wide text-gray-900 dark:text-white">
                 DeveloperShield
               </span>
             </div>
@@ -296,7 +299,7 @@ export default function AdminHeader() {
                 }}
               >
                 <button
-                  className="hover:text-primary flex items-center gap-1 rounded px-3 py-2 font-medium text-white transition-colors duration-200"
+                  className="hover:text-primary flex items-center gap-1 rounded px-3 py-2 font-medium text-gray-900 dark:text-white transition-colors duration-200"
                   type="button"
                 >
                   {item.title}
@@ -333,7 +336,7 @@ export default function AdminHeader() {
                       <Link
                         key={sub.title}
                         href={sub.path}
-                        className="block rounded px-4 py-2 text-white transition-colors duration-200 hover:bg-gray-700"
+                        className="block rounded px-4 py-2 text-gray-900 dark:text-white transition-colors duration-200 hover:bg-gray-700"
                       >
                         {sub.title}
                       </Link>
@@ -345,7 +348,7 @@ export default function AdminHeader() {
               <Link
                 key={item.title}
                 href={item.path}
-                className="hover:text-primary rounded px-3 py-2 font-medium text-white transition-colors duration-200"
+                className="hover:text-primary rounded px-3 py-2 font-medium text-gray-900 dark:text-white transition-colors duration-200"
               >
                 {item.title}
               </Link>
@@ -356,7 +359,7 @@ export default function AdminHeader() {
         <div className="flex-1" />
         {/* Mobile menu toggle */}
         <button
-          className="text-white focus:outline-none md:hidden"
+          className="text-gray-900 dark:text-white focus:outline-none md:hidden"
           onClick={() => setMenuOpen((prev) => !prev)}
           aria-label="Toggle menu"
         >
@@ -401,7 +404,7 @@ export default function AdminHeader() {
                 viewBox="0 0 24 24"
                 strokeWidth={1.5}
                 stroke="currentColor"
-                className="h-7 w-7 text-white"
+                className="h-7 w-7 text-gray-900 dark:text-white"
               >
                 <path
                   strokeLinecap="round"
@@ -422,7 +425,7 @@ export default function AdminHeader() {
                 <li key={item.title}>
                   <div className="relative">
                     <button
-                      className="hover:text-primary block flex w-full items-center gap-1 rounded px-3 py-2 text-left font-medium text-white transition-colors duration-200"
+                      className="hover:text-primary block flex w-full items-center gap-1 rounded px-3 py-2 text-left font-medium text-gray-900 dark:text-white transition-colors duration-200"
                       onClick={() =>
                         setDropdown(dropdown === item.title ? "" : item.title)
                       }
@@ -448,7 +451,7 @@ export default function AdminHeader() {
                           <Link
                             key={sub.title}
                             href={sub.path}
-                            className="block rounded px-4 py-2 text-white transition-colors duration-200 hover:bg-gray-700"
+                            className="block rounded px-4 py-2 text-gray-900 dark:text-white transition-colors duration-200 hover:bg-gray-700"
                             onClick={() => setMenuOpen(false)}
                           >
                             {sub.title}
@@ -462,7 +465,7 @@ export default function AdminHeader() {
                 <li key={item.title}>
                   <Link
                     href={item.path}
-                    className="hover:text-primary block rounded px-3 py-2 font-medium text-white transition-colors duration-200"
+                    className="hover:text-primary block rounded px-3 py-2 font-medium text-gray-900 dark:text-white transition-colors duration-200"
                     onClick={() => setMenuOpen(false)}
                   >
                     {item.title}

@@ -83,7 +83,7 @@ export default function AgentHeader() {
   };
 
   return (
-    <header className="header top-0 left-0 z-40 flex w-full items-center border-b border-gray-700 bg-[#181c23] shadow-lg">
+    <header className="header top-0 left-0 z-40 flex w-full items-center border-b border-gray-700 bg-white shadow-lg dark:bg-[#181c23]">
       <div className="container flex items-center py-4">
         {/* Logo */}
         <div className="flex items-center gap-2">
@@ -290,7 +290,7 @@ export default function AgentHeader() {
               </svg>
 
               {/* Logo Text */}
-              <span className="text-xl font-bold tracking-wide text-white">
+              <span className="text-xl font-bold tracking-wide text-gray-900 dark:text-white">
                 DeveloperShield
               </span>
             </div>
@@ -302,7 +302,7 @@ export default function AgentHeader() {
             <Link
               key={item.title}
               href={item.path}
-              className="hover:text-primary rounded px-3 py-2 font-medium text-white transition-colors duration-200"
+              className="hover:text-primary rounded px-3 py-2 font-medium text-gray-900 dark:text-white transition-colors duration-200"
             >
               {item.title}
             </Link>

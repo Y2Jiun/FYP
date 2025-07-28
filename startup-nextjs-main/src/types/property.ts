@@ -8,12 +8,20 @@ export interface Property {
     city: string;
     state: string;
     postalCode: string;
+    neighborhood?: string;
     coordinates?: {
       lat: number;
       lng: number;
     };
   };
-  propertyType: "condo" | "house" | "apartment" | "land" | "commercial";
+  propertyType:
+    | "condo"
+    | "house"
+    | "apartment"
+    | "land"
+    | "commercial"
+    | "industrial"
+    | "residential";
   bedrooms?: number;
   bathrooms?: number;
   size: number; // sq ft
@@ -32,6 +40,29 @@ export interface Property {
     details: "pending" | "verified" | "rejected";
     images: "pending" | "verified" | "rejected";
     overall: "pending" | "verified" | "rejected";
+  };
+
+  // New fields for advanced filtering
+  trustScore: number; // 0-100
+  verificationLevel: "BRONZE" | "SILVER" | "GOLD" | "PLATINUM";
+  listedDate: any;
+  verificationDate?: any;
+  amenities: string[]; // ["parking", "gym", "pool", "security", "elevator", "balcony", "garden", "air_conditioning", "heating", "internet", "cable_tv", "laundry", "storage", "pet_friendly", "furnished", "utilities_included"]
+  verifiedAmenities: string[]; // Amenities that have been verified
+  neighborhood: string;
+  zipCode: string;
+  agentVerified: boolean;
+  agentTrustScore?: number;
+  priceHistory?: {
+    date: any;
+    price: number;
+    change: number; // percentage change
+  }[];
+  marketData?: {
+    averagePrice: number;
+    priceRanking: number;
+    marketTrend: "increasing" | "decreasing" | "stable";
+    daysOnMarket: number;
   };
 }
 
