@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import UserHeader from "@/components/User/userHeader";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { moderateText, ModerationResult } from "@/utils/api";
 
 const BOT_AVATAR = "/images/logo/logo.svg";
 
@@ -45,10 +46,29 @@ export default function UserChatbotPage() {
     e.preventDefault();
     setError("");
     if (!input.trim()) return;
+
+    // 1. Moderate the text content first
+    try {
+      const moderation: ModerationResult = await moderateText(input);
+
+      if (moderation.flagged) {
+        setError(
+          moderation.reason ||
+            "Inappropriate content detected. Please use respectful language.",
+        );
+        return;
+      }
+    } catch (err) {
+      console.error("Moderation API error:", err);
+      setError("Failed to check message content. Please try again.");
+      return;
+    }
+
     const userMsg = { sender: "user", text: input };
     setMessages((msgs) => [...msgs, userMsg]);
     setInput("");
     setLoading(true);
+
     try {
       const res = await fetch("/api/chatbot", {
         method: "POST",

@@ -15,6 +15,7 @@ import {
   getDocs,
   setDoc,
 } from "firebase/firestore";
+import { moderateText, moderateImage, ModerationResult } from "@/utils/api";
 
 type PropertyChatProps = {
   propertyId: string;
@@ -54,6 +55,9 @@ export default function PropertyChat({
   const [chatId, setChatId] = useState<string | null>(propChatId || null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userData, setUserData] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Get current user data
@@ -227,32 +231,155 @@ export default function PropertyChat({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Handle image selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image size must be less than 5MB");
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith("image/")) {
+        setError("Please select an image file");
+        return;
+      }
+
+      setSelectedImage(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Remove selected image
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Upload image using API
+  const uploadImage = async (file: File): Promise<string> => {
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Upload failed");
+      }
+
+      const result = await response.json();
+      return result.imageUrl;
+    } catch (error) {
+      console.error("Image upload error:", error);
+      throw new Error("Failed to upload image. Please try again.");
+    }
+  };
+
   // Send message handler
   const handleSend = async () => {
-    if (!input.trim() || !chatId || !currentUser || !userData) return;
+    if (
+      (!input.trim() && !selectedImage) ||
+      !chatId ||
+      !currentUser ||
+      !userData
+    )
+      return;
 
     setSending(true);
     setError("");
 
     try {
-      // Generate sequential message ID
+      // 1. Moderate the text content first (if there's text)
+      if (input.trim()) {
+        let moderation: ModerationResult;
+        try {
+          moderation = await moderateText(input);
+        } catch (err) {
+          console.error("Moderation API error:", err);
+          setError("Failed to check message content. Please try again.");
+          setSending(false);
+          return;
+        }
+
+        if (moderation.flagged) {
+          setError(
+            moderation.reason ||
+              "Inappropriate content detected. Please use respectful language.",
+          );
+          setSending(false);
+          return;
+        }
+      }
+
+      // 2. Upload image if selected
+      let imageUrl = "";
+      if (selectedImage) {
+        try {
+          imageUrl = await uploadImage(selectedImage);
+
+          // 3. Moderate the uploaded image
+          let imageModeration: ModerationResult;
+          try {
+            imageModeration = await moderateImage(imageUrl);
+          } catch (err) {
+            console.error("Image moderation API error:", err);
+            setError("Failed to check image content. Please try again.");
+            setSending(false);
+            return;
+          }
+
+          if (imageModeration.flagged) {
+            setError(
+              imageModeration.reason ||
+                "Inappropriate image content detected. Please use appropriate images.",
+            );
+            setSending(false);
+            return;
+          }
+        } catch (err) {
+          console.error("Image upload error:", err);
+          setError("Failed to upload image. Please try again.");
+          setSending(false);
+          return;
+        }
+      }
+
+      // 4. Generate sequential message ID
       const messagesRef = collection(db, "chats", chatId, "messages");
       const messagesSnap = await getDocs(messagesRef);
       const nextMsgNum = messagesSnap.size + 1;
       const messageId = `MSG${String(nextMsgNum).padStart(3, "0")}`;
 
+      // 5. Save message to Firestore
       await setDoc(doc(messagesRef, messageId), {
         messageId,
         senderId: userData.userID,
         userUID: currentUser.uid,
         content: input,
-        imageUrl: "",
+        imageUrl: imageUrl,
         timestamp: serverTimestamp(),
-        moderationStatus: "approved", // You can add moderation here
+        moderationStatus: "approved",
         flaggedReason: "",
       });
 
       setInput("");
+      removeImage();
     } catch (err) {
       console.error("Error sending message:", err);
       setError("Failed to send message.");
@@ -327,21 +454,32 @@ export default function PropertyChat({
               <div
                 key={msg.id}
                 className={`mb-4 flex ${
-                  msg.userUID === currentUser.uid
+                  msg.senderId === userData?.userID
                     ? "justify-end"
                     : "justify-start"
                 }`}
               >
                 <div
-                  className={`max-w-xs rounded-lg px-4 py-2 ${
-                    msg.userUID === currentUser.uid
+                  className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                    msg.senderId === userData?.userID
                       ? "bg-blue-500 text-white"
                       : "bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white"
                   }`}
                 >
-                  <p className="text-sm">{msg.content}</p>
-                  <p className="mt-1 text-xs opacity-70">
-                    {msg.timestamp?.toDate?.()?.toLocaleTimeString() || "Now"}
+                  {msg.content && <p className="mb-2">{msg.content}</p>}
+                  {msg.imageUrl && (
+                    <div className="mb-2">
+                      <img
+                        src={msg.imageUrl}
+                        alt="Chat image"
+                        className="max-w-full rounded-lg"
+                        style={{ maxHeight: "200px" }}
+                      />
+                    </div>
+                  )}
+                  <p className="text-xs opacity-70">
+                    {msg.timestamp?.toDate?.().toLocaleTimeString() ||
+                      "Just now"}
                   </p>
                 </div>
               </div>
@@ -350,28 +488,57 @@ export default function PropertyChat({
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Image Preview */}
+        {imagePreview && (
+          <div className="border-t p-2 dark:border-gray-700">
+            <div className="relative inline-block">
+              <img
+                src={imagePreview}
+                alt="Preview"
+                className="h-20 w-20 rounded object-cover"
+              />
+              <button
+                onClick={removeImage}
+                className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Input Area */}
         <div className="border-t p-4 dark:border-gray-700">
           <div className="flex items-center gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+              disabled={sending}
+            >
+              📷
+            </button>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Type your message..."
-              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              className="flex-1 rounded border px-3 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               disabled={sending}
             />
             <button
               onClick={handleSend}
-              disabled={sending || !input.trim()}
-              className="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
+              disabled={sending || (!input.trim() && !selectedImage)}
+              className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
             >
-              {sending ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-              ) : (
-                "Send"
-              )}
+              {sending ? "Sending..." : "Send"}
             </button>
           </div>
           {error && <p className="mt-2 text-sm text-red-500">{error}</p>}

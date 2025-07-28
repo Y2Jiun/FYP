@@ -37,6 +37,9 @@ export default function ChatWindow({
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Listen for messages in real-time
@@ -58,40 +61,134 @@ export default function ChatWindow({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Handle image selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image size must be less than 5MB");
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith("image/")) {
+        setError("Please select an image file");
+        return;
+      }
+
+      setSelectedImage(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Remove selected image
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Upload image using API
+  const uploadImage = async (file: File): Promise<string> => {
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Upload failed");
+      }
+
+      const result = await response.json();
+      return result.imageUrl;
+    } catch (error) {
+      console.error("Image upload error:", error);
+      throw new Error("Failed to upload image. Please try again.");
+    }
+  };
+
   // Send message handler
   async function handleSend() {
     setError("");
-    if (!input.trim()) return;
+    if (!input.trim() && !selectedImage) return;
     setSending(true);
 
-    // 1. Moderate text
+    // 1. Moderate text (if there's text)
     let moderation: ModerationResult;
-    try {
-      moderation = await moderateText(input);
-    } catch (err) {
-      setError("Failed to check message. Try again.");
-      setSending(false);
-      return;
+    if (input.trim()) {
+      try {
+        moderation = await moderateText(input);
+      } catch (err) {
+        setError("Failed to check message. Try again.");
+        setSending(false);
+        return;
+      }
+
+      if (moderation.flagged) {
+        setError(
+          "Message blocked: " + (moderation.reason || "Inappropriate content"),
+        );
+        setSending(false);
+        return;
+      }
     }
 
-    if (moderation.flagged) {
-      setError(
-        "Message blocked: " + (moderation.reason || "Inappropriate content"),
-      );
-      setSending(false);
-      return;
+    // 2. Upload image if selected
+    let imageUrl = "";
+    if (selectedImage) {
+      try {
+        imageUrl = await uploadImage(selectedImage);
+
+        // 3. Moderate the uploaded image
+        let imageModeration: ModerationResult;
+        try {
+          imageModeration = await moderateImage(imageUrl);
+        } catch (err) {
+          setError("Failed to check image content. Try again.");
+          setSending(false);
+          return;
+        }
+
+        if (imageModeration.flagged) {
+          setError(
+            "Image blocked: " +
+              (imageModeration.reason || "Inappropriate image content"),
+          );
+          setSending(false);
+          return;
+        }
+      } catch (err) {
+        setError("Failed to upload image. Try again.");
+        setSending(false);
+        return;
+      }
     }
 
-    // 2. Save to Firestore
+    // 4. Save to Firestore
     try {
       await addDoc(collection(db, "chats", chatId, "messages"), {
         senderId: userId,
         content: input,
-        imageUrl: null,
+        imageUrl: imageUrl,
         timestamp: serverTimestamp(),
         moderationStatus: "approved",
       });
       setInput("");
+      removeImage();
     } catch (err) {
       setError("Failed to send message.");
     }
@@ -113,7 +210,17 @@ export default function ChatWindow({
                   : "bg-gray-200 text-black dark:bg-gray-700 dark:text-white"
               }`}
             >
-              {msg.content}
+              {msg.content && <p className="mb-2">{msg.content}</p>}
+              {msg.imageUrl && (
+                <div className="mb-2">
+                  <img
+                    src={msg.imageUrl}
+                    alt="Chat image"
+                    className="max-w-full rounded"
+                    style={{ maxHeight: "200px" }}
+                  />
+                </div>
+              )}
               {msg.moderationStatus !== "approved" && (
                 <span className="ml-2 text-xs text-red-500">
                   (Blocked: {msg.flaggedReason})
@@ -124,7 +231,40 @@ export default function ChatWindow({
         ))}
         <div ref={messagesEndRef} />
       </div>
+      {/* Image Preview */}
+      {imagePreview && (
+        <div className="border-t p-2">
+          <div className="relative inline-block">
+            <img
+              src={imagePreview}
+              alt="Preview"
+              className="h-20 w-20 rounded object-cover"
+            />
+            <button
+              onClick={removeImage}
+              className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-2 border-t p-2">
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept="image/*"
+          onChange={handleImageSelect}
+          className="hidden"
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="rounded p-2 text-gray-500 hover:bg-gray-100"
+          disabled={sending}
+        >
+          📷
+        </button>
         <input
           className="flex-1 rounded border px-3 py-2"
           value={input}
@@ -136,7 +276,7 @@ export default function ChatWindow({
         <button
           className="bg-primary rounded px-4 py-2 text-white"
           onClick={handleSend}
-          disabled={sending}
+          disabled={sending || (!input.trim() && !selectedImage)}
         >
           Send
         </button>
