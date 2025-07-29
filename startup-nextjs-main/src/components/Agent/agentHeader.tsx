@@ -83,7 +83,7 @@ export default function AgentHeader() {
   };
 
   return (
-    <header className="header top-0 left-0 z-40 flex w-full items-center border-b border-gray-700 bg-white shadow-lg dark:bg-[#181c23]">
+    <header className="header top-0 left-0 z-40 flex w-full items-center border-b border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-[#181c23]">
       <div className="container flex items-center py-4">
         {/* Logo */}
         <div className="flex items-center gap-2">
@@ -313,7 +313,7 @@ export default function AgentHeader() {
         {/* Sign out and theme toggle */}
         <div className="ml-4 flex items-center gap-4">
           <Link href="/agent/agentprofile">
-            <div className="border-primary flex h-14 w-14 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 bg-gray-100 transition-transform hover:scale-105">
+            <div className="border-primary flex h-14 w-14 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 bg-gray-100 transition-transform hover:scale-105 dark:bg-gray-800">
               {profilePic ? (
                 <img
                   src={profilePic}
@@ -335,7 +335,7 @@ export default function AgentHeader() {
           {/* Notification icon (moved to right of ThemeToggle) */}
           <Link href="/agent/agentNotification">
             <button
-              className="relative ml-2 flex items-center justify-center rounded-full bg-gray-700 p-2 transition hover:bg-gray-600"
+              className="relative ml-2 flex items-center justify-center rounded-full bg-gray-200 p-2 transition hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
               title="Notifications"
             >
               <svg

@@ -192,15 +192,19 @@ export default function UserProfilePage() {
   };
 
   if (!userData) {
-    return <div className="mt-10 text-center">Loading profile...</div>;
+    return (
+      <div className="mt-10 text-center text-gray-900 dark:text-white">
+        Loading profile...
+      </div>
+    );
   }
 
   return (
-    <section className="flex min-h-screen items-start justify-center bg-[#1a1e26] pt-8">
+    <section className="flex min-h-screen items-start justify-center bg-white pt-8 dark:bg-[#1a1e26]">
       <div className="w-full p-0">
         {/* Back Icon */}
         <button
-          className="mb-4 ml-2 flex h-12 w-12 items-center justify-center rounded-full bg-blue-300 shadow-lg transition-colors duration-200 hover:bg-blue-400"
+          className="mb-4 ml-2 flex h-12 w-12 items-center justify-center rounded-full bg-blue-500 shadow-lg transition-colors duration-200 hover:bg-blue-600"
           onClick={() => router.push("/user/user-dashboard")}
           title="Back to Dashboard"
         >
@@ -267,7 +271,7 @@ export default function UserProfilePage() {
               value={username}
               disabled={!editMode}
               onChange={(e) => setUsername(e.target.value)}
-              className="focus:border-primary w-full rounded border px-3 py-4 text-base focus:outline-none dark:bg-[#2C303B] dark:text-white"
+              className="focus:border-primary w-full rounded border border-gray-300 bg-white px-3 py-4 text-base text-gray-900 focus:outline-none dark:border-gray-600 dark:bg-[#2C303B] dark:text-white"
             />
             {errors.username && (
               <div className="mt-1 text-sm text-red-500">{errors.username}</div>
@@ -281,7 +285,7 @@ export default function UserProfilePage() {
               type="email"
               value={userData.email}
               disabled
-              className="w-full rounded border bg-gray-100 px-3 py-4 text-base dark:bg-[#2C303B] dark:text-white"
+              className="w-full rounded border border-gray-300 bg-gray-100 px-3 py-4 text-base text-gray-900 dark:border-gray-600 dark:bg-[#2C303B] dark:text-white"
             />
           </div>
           <div className="flex-1">
@@ -293,7 +297,7 @@ export default function UserProfilePage() {
               value={contact}
               disabled={!editMode}
               onChange={(e) => setContact(e.target.value)}
-              className="focus:border-primary w-full rounded border px-3 py-4 text-base focus:outline-none dark:bg-[#2C303B] dark:text-white"
+              className="focus:border-primary w-full rounded border border-gray-300 bg-white px-3 py-4 text-base text-gray-900 focus:outline-none dark:border-gray-600 dark:bg-[#2C303B] dark:text-white"
             />
             {errors.contact && (
               <div className="mt-1 text-sm text-red-500">{errors.contact}</div>
@@ -314,7 +318,7 @@ export default function UserProfilePage() {
                 value={currentPassword}
                 disabled={!editMode}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="focus:border-primary mb-2 w-full rounded border px-3 py-4 pr-10 text-base focus:outline-none dark:bg-[#2C303B] dark:text-white"
+                className="focus:border-primary mb-2 w-full rounded border border-gray-300 bg-white px-3 py-4 pr-10 text-base text-gray-900 focus:outline-none dark:border-gray-600 dark:bg-[#2C303B] dark:text-white"
               />
               <button
                 type="button"
@@ -332,7 +336,7 @@ export default function UserProfilePage() {
                 value={newPassword}
                 disabled={!editMode}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="focus:border-primary mb-2 w-full rounded border px-3 py-4 pr-10 text-base focus:outline-none dark:bg-[#2C303B] dark:text-white"
+                className="focus:border-primary mb-2 w-full rounded border border-gray-300 bg-white px-3 py-4 pr-10 text-base text-gray-900 focus:outline-none dark:border-gray-600 dark:bg-[#2C303B] dark:text-white"
               />
               <button
                 type="button"
@@ -350,7 +354,7 @@ export default function UserProfilePage() {
                 value={confirmPassword}
                 disabled={!editMode}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="focus:border-primary w-full rounded border px-3 py-4 pr-10 text-base focus:outline-none dark:bg-[#2C303B] dark:text-white"
+                className="focus:border-primary w-full rounded border border-gray-300 bg-white px-3 py-4 pr-10 text-base text-gray-900 focus:outline-none dark:border-gray-600 dark:bg-[#2C303B] dark:text-white"
               />
               <button
                 type="button"

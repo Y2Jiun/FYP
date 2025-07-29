@@ -395,7 +395,7 @@ export default function AdminHeader() {
           <ThemeToggler />
           <Link href="/admin/adminNotification">
             <button
-              className="ml-2 flex items-center justify-center rounded-full bg-gray-700 p-2 transition hover:bg-gray-600"
+              className="ml-2 flex items-center justify-center rounded-full bg-gray-200 p-2 transition hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
               title="Notifications"
             >
               <svg
@@ -404,7 +404,7 @@ export default function AdminHeader() {
                 viewBox="0 0 24 24"
                 strokeWidth={1.5}
                 stroke="currentColor"
-                className="h-7 w-7 text-gray-900 dark:text-white"
+                className="h-7 w-7 text-gray-700 dark:text-white"
               >
                 <path
                   strokeLinecap="round"

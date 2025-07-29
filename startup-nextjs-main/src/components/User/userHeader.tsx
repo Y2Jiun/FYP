@@ -328,6 +328,16 @@ export default function UserHeader() {
                 <Menu.Item>
                   {({ active }) => (
                     <Link
+                      href="/user/ROICalculator"
+                      className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-700" : ""}`}
+                    >
+                      ROI Calculator
+                    </Link>
+                  )}
+                </Menu.Item>
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link
                       href="/user/userChatbot"
                       className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-700" : ""}`}
                     >
@@ -376,7 +386,7 @@ export default function UserHeader() {
           {/* Notification icon (moved to right of ThemeToggle) */}
           <Link href="/user/userNotification">
             <button
-              className="relative ml-2 flex items-center justify-center rounded-full bg-gray-700 p-2 transition hover:bg-gray-600"
+              className="relative ml-2 flex items-center justify-center rounded-full bg-gray-200 p-2 transition hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
               title="Notifications"
             >
               <svg
@@ -385,7 +395,7 @@ export default function UserHeader() {
                 viewBox="0 0 24 24"
                 strokeWidth={1.5}
                 stroke="currentColor"
-                className="h-7 w-7 text-gray-900 dark:text-white"
+                className="h-7 w-7 text-gray-700 dark:text-white"
               >
                 <path
                   strokeLinecap="round"
