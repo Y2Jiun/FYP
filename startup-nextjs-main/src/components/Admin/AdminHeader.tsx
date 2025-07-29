@@ -299,7 +299,7 @@ export default function AdminHeader() {
                 }}
               >
                 <button
-                  className="hover:text-primary flex items-center gap-1 rounded px-3 py-2 font-medium text-gray-900 dark:text-white transition-colors duration-200"
+                  className="hover:text-primary flex items-center gap-1 rounded px-3 py-2 font-medium text-gray-900 transition-colors duration-200 dark:text-white"
                   type="button"
                 >
                   {item.title}
@@ -320,7 +320,7 @@ export default function AdminHeader() {
                 {/* Dropdown menu */}
                 {dropdown === item.title && (
                   <div
-                    className="absolute left-0 z-50 mt-2 w-64 rounded-md bg-[#23272f] shadow-lg"
+                    className="absolute left-0 z-50 mt-2 w-64 rounded-md bg-white shadow-lg dark:bg-[#23272f]"
                     onMouseEnter={() => {
                       if (dropdownTimeout.current)
                         clearTimeout(dropdownTimeout.current);
@@ -336,7 +336,7 @@ export default function AdminHeader() {
                       <Link
                         key={sub.title}
                         href={sub.path}
-                        className="block rounded px-4 py-2 text-gray-900 dark:text-white transition-colors duration-200 hover:bg-gray-700"
+                        className="block rounded px-4 py-2 text-gray-900 transition-colors duration-200 hover:bg-gray-700 dark:text-white"
                       >
                         {sub.title}
                       </Link>
@@ -348,7 +348,7 @@ export default function AdminHeader() {
               <Link
                 key={item.title}
                 href={item.path}
-                className="hover:text-primary rounded px-3 py-2 font-medium text-gray-900 dark:text-white transition-colors duration-200"
+                className="hover:text-primary rounded px-3 py-2 font-medium text-gray-900 transition-colors duration-200 dark:text-white"
               >
                 {item.title}
               </Link>
@@ -359,7 +359,7 @@ export default function AdminHeader() {
         <div className="flex-1" />
         {/* Mobile menu toggle */}
         <button
-          className="text-gray-900 dark:text-white focus:outline-none md:hidden"
+          className="text-gray-900 focus:outline-none md:hidden dark:text-white"
           onClick={() => setMenuOpen((prev) => !prev)}
           aria-label="Toggle menu"
         >
@@ -418,14 +418,14 @@ export default function AdminHeader() {
       </div>
       {/* Mobile menu */}
       {menuOpen && (
-        <nav className="absolute top-full left-0 z-50 w-full border-b border-gray-700 bg-[#181c23] shadow-lg md:hidden">
+        <nav className="absolute top-full left-0 z-50 w-full border-b border-gray-700 bg-white shadow-lg md:hidden dark:bg-[#181c23]">
           <ul className="flex flex-col gap-2 p-4">
             {adminMenu.map((item) =>
               item.submenu ? (
                 <li key={item.title}>
                   <div className="relative">
                     <button
-                      className="hover:text-primary block flex w-full items-center gap-1 rounded px-3 py-2 text-left font-medium text-gray-900 dark:text-white transition-colors duration-200"
+                      className="hover:text-primary block flex w-full items-center gap-1 rounded px-3 py-2 text-left font-medium text-gray-900 transition-colors duration-200 dark:text-white"
                       onClick={() =>
                         setDropdown(dropdown === item.title ? "" : item.title)
                       }
@@ -446,12 +446,12 @@ export default function AdminHeader() {
                       </svg>
                     </button>
                     {dropdown === item.title && (
-                      <div className="mt-1 ml-4 rounded-md bg-[#23272f] shadow-lg">
+                      <div className="mt-1 ml-4 rounded-md bg-white shadow-lg dark:bg-[#23272f]">
                         {item.submenu.map((sub) => (
                           <Link
                             key={sub.title}
                             href={sub.path}
-                            className="block rounded px-4 py-2 text-gray-900 dark:text-white transition-colors duration-200 hover:bg-gray-700"
+                            className="block rounded px-4 py-2 text-gray-900 transition-colors duration-200 hover:bg-gray-700 dark:text-white"
                             onClick={() => setMenuOpen(false)}
                           >
                             {sub.title}
@@ -465,7 +465,7 @@ export default function AdminHeader() {
                 <li key={item.title}>
                   <Link
                     href={item.path}
-                    className="hover:text-primary block rounded px-3 py-2 font-medium text-gray-900 dark:text-white transition-colors duration-200"
+                    className="hover:text-primary block rounded px-3 py-2 font-medium text-gray-900 transition-colors duration-200 dark:text-white"
                     onClick={() => setMenuOpen(false)}
                   >
                     {item.title}

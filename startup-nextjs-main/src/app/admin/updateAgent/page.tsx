@@ -89,11 +89,11 @@ export default function UpdateAgentPage() {
     <>
       <AdminHeader />
       <div className="container mx-auto py-8">
-        <h1 className="mt-8 mb-6 text-2xl font-bold text-white">
+        <h1 className="mt-8 mb-6 text-2xl font-bold text-gray-900 dark:text-white">
           Agent Requests
         </h1>
         {notification && (
-          <div className="mb-4 rounded border border-blue-700 bg-blue-900/80 px-4 py-2 text-blue-200 shadow">
+          <div className="mb-4 rounded border border-blue-300 bg-blue-100 px-4 py-2 text-blue-800 shadow dark:border-blue-700 dark:bg-blue-900/80 dark:text-blue-200">
             {notification}
           </div>
         )}
@@ -102,7 +102,7 @@ export default function UpdateAgentPage() {
             <input
               type="text"
               placeholder="Search by User ID, Username, or Email..."
-              className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 pl-10 text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 pl-10 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => {
@@ -119,7 +119,7 @@ export default function UpdateAgentPage() {
           </button>
           {search && (
             <button
-              className="flex items-center rounded bg-gray-700 px-2 py-2 font-medium text-white shadow hover:bg-gray-600"
+              className="flex items-center rounded bg-gray-200 px-2 py-2 font-medium text-gray-900 shadow hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
               onClick={handleClearSearch}
               aria-label="Clear search"
             >
@@ -128,26 +128,28 @@ export default function UpdateAgentPage() {
           )}
         </div>
         {loading ? (
-          <p className="text-gray-300">Loading...</p>
+          <p className="text-gray-500 dark:text-gray-300">Loading...</p>
         ) : error ? (
-          <p className="text-red-400">{error}</p>
+          <p className="text-red-600 dark:text-red-400">{error}</p>
         ) : filteredUsers.length === 0 ? (
-          <p className="text-gray-400">No agent requests found.</p>
+          <p className="text-gray-500 dark:text-gray-400">
+            No agent requests found.
+          </p>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-gray-700 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 shadow-2xl">
-            <table className="min-w-full text-white">
+          <div className="overflow-x-auto rounded-2xl border border-gray-300 bg-white shadow-2xl dark:border-gray-700 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+            <table className="min-w-full text-gray-900 dark:text-white">
               <thead>
                 <tr>
-                  <th className="border-b border-gray-700 px-6 py-4 text-left font-semibold">
+                  <th className="border-b border-gray-300 px-6 py-4 text-left font-semibold dark:border-gray-700">
                     User ID
                   </th>
-                  <th className="border-b border-gray-700 px-6 py-4 text-left font-semibold">
+                  <th className="border-b border-gray-300 px-6 py-4 text-left font-semibold dark:border-gray-700">
                     Username
                   </th>
-                  <th className="border-b border-gray-700 px-6 py-4 text-left font-semibold">
+                  <th className="border-b border-gray-300 px-6 py-4 text-left font-semibold dark:border-gray-700">
                     Email
                   </th>
-                  <th className="border-b border-gray-700 px-6 py-4 text-left font-semibold">
+                  <th className="border-b border-gray-300 px-6 py-4 text-left font-semibold dark:border-gray-700">
                     Actions
                   </th>
                 </tr>
@@ -156,18 +158,18 @@ export default function UpdateAgentPage() {
                 {filteredUsers.map((user, idx) => (
                   <tr
                     key={user.id}
-                    className={`transition-colors ${idx % 2 === 0 ? "bg-gray-900" : "bg-gray-800"} hover:bg-gray-700`}
+                    className={`transition-colors ${idx % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-100 dark:bg-gray-800"} hover:bg-gray-200 dark:hover:bg-gray-700`}
                   >
-                    <td className="rounded-l-2xl border-b border-gray-700 px-6 py-4">
+                    <td className="rounded-l-2xl border-b border-gray-300 px-6 py-4 dark:border-gray-700">
                       {user.id}
                     </td>
-                    <td className="border-b border-gray-700 px-6 py-4">
+                    <td className="border-b border-gray-300 px-6 py-4 dark:border-gray-700">
                       {user.username || "-"}
                     </td>
-                    <td className="border-b border-gray-700 px-6 py-4">
+                    <td className="border-b border-gray-300 px-6 py-4 dark:border-gray-700">
                       {user.email || "-"}
                     </td>
-                    <td className="flex gap-2 rounded-r-2xl border-b border-gray-700 px-6 py-4">
+                    <td className="flex gap-2 rounded-r-2xl border-b border-gray-300 px-6 py-4 dark:border-gray-700">
                       <button
                         className="rounded-lg bg-green-600 px-5 py-2 font-semibold text-white shadow transition-colors hover:bg-green-500 focus:ring-2 focus:ring-green-400"
                         onClick={() => handleApprove(user.id)}

@@ -79,20 +79,20 @@ export default function AgentBanAppealsPage() {
   return (
     <>
       <AdminHeader />
-      <div className="min-h-screen bg-gradient-to-br from-[#181c23] via-[#23272f] to-[#181c23] p-8">
-        <h1 className="mb-10 text-center text-4xl font-extrabold tracking-tight text-white drop-shadow-lg">
+      <div className="min-h-screen bg-white dark:bg-[#181c23] p-8">
+        <h1 className="mb-10 text-center text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white drop-shadow-lg">
           Agent Ban Appeals
         </h1>
         {loading ? (
-          <div className="text-center text-white">Loading...</div>
+          <div className="text-center text-gray-500 dark:text-white">Loading...</div>
         ) : appeals.length === 0 ? (
-          <div className="text-center text-gray-400">No pending appeals.</div>
+          <div className="text-center text-gray-500 dark:text-gray-400">No pending appeals.</div>
         ) : (
           <div className="mx-auto max-w-2xl space-y-8">
             {appeals.map((appeal) => (
               <div
                 key={appeal.id}
-                className="relative flex flex-col items-center gap-6 rounded-2xl border border-white/20 bg-white/10 p-8 shadow-2xl backdrop-blur-md transition-shadow duration-300 hover:shadow-blue-500/20 md:flex-row"
+                className="relative flex flex-col items-center gap-6 rounded-2xl border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 p-8 shadow-2xl backdrop-blur-md transition-shadow duration-300 hover:shadow-blue-500/20 md:flex-row"
               >
                 {/* Avatar */}
                 <div className="flex flex-shrink-0 flex-col items-center md:items-start">
@@ -103,26 +103,26 @@ export default function AgentBanAppealsPage() {
                         "A",
                     )}
                   </div>
-                  <span className="mb-2 rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-semibold text-yellow-400">
+                  <span className="mb-2 rounded-full bg-yellow-100 dark:bg-yellow-500/20 px-3 py-1 text-xs font-semibold text-yellow-700 dark:text-yellow-400">
                     Pending
                   </span>
                 </div>
                 {/* Info */}
                 <div className="flex-1">
-                  <div className="mb-1 text-lg font-bold text-white">
+                  <div className="mb-1 text-lg font-bold text-gray-900 dark:text-white">
                     {appeal.agentInfo?.username ||
                       appeal.agentInfo?.name ||
                       "-"}
                   </div>
-                  <div className="mb-1 text-sm text-gray-300">
+                  <div className="mb-1 text-sm text-gray-700 dark:text-gray-300">
                     <span className="font-medium">Agent ID:</span>{" "}
                     {appeal.agentId}
                   </div>
-                  <div className="mb-1 text-sm text-gray-400">
+                  <div className="mb-1 text-sm text-gray-500 dark:text-gray-400">
                     <span className="font-medium">Email:</span>{" "}
                     {appeal.agentInfo?.email || "-"}
                   </div>
-                  <div className="mb-2 text-xs text-gray-500">
+                  <div className="mb-2 text-xs text-gray-400 dark:text-gray-500">
                     Appeal submitted:{" "}
                     {appeal.createdAt?.seconds
                       ? new Date(

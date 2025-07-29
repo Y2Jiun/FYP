@@ -302,7 +302,7 @@ export default function AgentHeader() {
             <Link
               key={item.title}
               href={item.path}
-              className="hover:text-primary rounded px-3 py-2 font-medium text-gray-900 dark:text-white transition-colors duration-200"
+              className="hover:text-primary rounded px-3 py-2 font-medium text-gray-900 transition-colors duration-200 dark:text-white"
             >
               {item.title}
             </Link>
@@ -344,7 +344,7 @@ export default function AgentHeader() {
                 viewBox="0 0 24 24"
                 strokeWidth={1.5}
                 stroke="currentColor"
-                className="h-7 w-7 text-white"
+                className="h-7 w-7 text-gray-900 dark:text-white"
               >
                 <path
                   strokeLinecap="round"

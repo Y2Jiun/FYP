@@ -234,19 +234,19 @@ export default function PropertyVerificationPage() {
   return (
     <>
       <AdminHeader />
-      <div className="container mx-auto py-8">
+      <div className="container mx-auto bg-white py-8 dark:bg-[#181c23]">
         <div className="mb-8">
-          <h1 className="mb-4 text-3xl font-bold text-white">
+          <h1 className="mb-4 text-3xl font-bold text-gray-900 dark:text-white">
             Property Verification & Documentation
           </h1>
-          <p className="text-gray-300">
+          <p className="text-gray-700 dark:text-gray-300">
             Manage property verification, document authenticity, and audit
             trails
           </p>
         </div>
 
         {notification && (
-          <div className="mb-6 rounded-lg border border-blue-700 bg-blue-900/80 px-4 py-3 text-blue-200">
+          <div className="mb-6 rounded-lg border border-blue-300 bg-blue-100 px-4 py-3 text-blue-800 shadow dark:border-blue-700 dark:bg-blue-900/80 dark:text-blue-200">
             {notification}
           </div>
         )}
@@ -259,7 +259,7 @@ export default function PropertyVerificationPage() {
               <input
                 type="text"
                 placeholder="Search properties, documents..."
-                className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 pl-10 text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 pl-10 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -268,7 +268,7 @@ export default function PropertyVerificationPage() {
           <div className="flex items-center gap-2">
             <FiFilter className="text-gray-400" />
             <select
-              className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-white focus:border-blue-500 focus:outline-none"
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
@@ -281,7 +281,7 @@ export default function PropertyVerificationPage() {
         </div>
 
         {/* Tabs */}
-        <div className="mb-6 flex gap-4 border-b border-gray-700">
+        <div className="mb-6 flex gap-4 border-b border-gray-300 dark:border-gray-700">
           <button
             className={`px-4 py-2 font-semibold ${activeTab === "properties" ? "border-b-2 border-blue-400 text-blue-400" : "text-gray-400"}`}
             onClick={() => setActiveTab("properties")}
@@ -304,15 +304,15 @@ export default function PropertyVerificationPage() {
 
         {loading ? (
           <div className="py-8 text-center">
-            <div className="text-gray-300">Loading...</div>
+            <div className="text-gray-500 dark:text-gray-300">Loading...</div>
           </div>
         ) : (
           <div className="space-y-6">
             {activeTab === "properties" && (
-              <div className="overflow-x-auto rounded-lg border border-gray-700 bg-gray-900">
-                <table className="min-w-full text-white">
+              <div className="overflow-x-auto rounded-lg border border-gray-300 bg-white shadow dark:border-gray-700 dark:bg-gray-900">
+                <table className="min-w-full text-gray-900 dark:text-white">
                   <thead>
-                    <tr className="border-b border-gray-700 bg-gray-800">
+                    <tr className="border-b border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
                       <th className="px-6 py-4 text-left font-semibold">
                         Property ID
                       </th>
@@ -343,7 +343,7 @@ export default function PropertyVerificationPage() {
                     {filteredProperties.map((property) => (
                       <tr
                         key={property.propertyId}
-                        className="border-b border-gray-700 hover:bg-gray-800"
+                        className="border-b border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
                       >
                         <td className="px-6 py-4">{property.propertyId}</td>
                         <td className="px-6 py-4">{property.title}</td>
@@ -414,10 +414,10 @@ export default function PropertyVerificationPage() {
             )}
 
             {activeTab === "documents" && (
-              <div className="overflow-x-auto rounded-lg border border-gray-700 bg-gray-900">
-                <table className="min-w-full text-white">
+              <div className="overflow-x-auto rounded-lg border border-gray-300 bg-white shadow dark:border-gray-700 dark:bg-gray-900">
+                <table className="min-w-full text-gray-900 dark:text-white">
                   <thead>
-                    <tr className="border-b border-gray-700 bg-gray-800">
+                    <tr className="border-b border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
                       <th className="px-6 py-4 text-left font-semibold">
                         Document ID
                       </th>
@@ -445,7 +445,7 @@ export default function PropertyVerificationPage() {
                     {filteredDocuments.map((document) => (
                       <tr
                         key={document.documentId}
-                        className="border-b border-gray-700 hover:bg-gray-800"
+                        className="border-b border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
                       >
                         <td className="px-6 py-4">{document.documentId}</td>
                         <td className="px-6 py-4">{document.propertyId}</td>
@@ -503,10 +503,10 @@ export default function PropertyVerificationPage() {
             )}
 
             {activeTab === "history" && (
-              <div className="overflow-x-auto rounded-lg border border-gray-700 bg-gray-900">
-                <table className="min-w-full text-white">
+              <div className="overflow-x-auto rounded-lg border border-gray-300 bg-white shadow dark:border-gray-700 dark:bg-gray-900">
+                <table className="min-w-full text-gray-900 dark:text-white">
                   <thead>
-                    <tr className="border-b border-gray-700 bg-gray-800">
+                    <tr className="border-b border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
                       <th className="px-6 py-4 text-left font-semibold">
                         History ID
                       </th>
@@ -531,7 +531,7 @@ export default function PropertyVerificationPage() {
                     {verificationHistory.map((history) => (
                       <tr
                         key={history.historyId}
-                        className="border-b border-gray-700 hover:bg-gray-800"
+                        className="border-b border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
                       >
                         <td className="px-6 py-4">{history.historyId}</td>
                         <td className="px-6 py-4">{history.propertyId}</td>
@@ -566,19 +566,19 @@ export default function PropertyVerificationPage() {
         {/* Verification Modal */}
         {(selectedProperty || selectedDocument) && (
           <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
-            <div className="w-full max-w-2xl rounded-lg bg-gray-900 p-6">
-              <h3 className="mb-4 text-xl font-semibold text-white">
+            <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg dark:bg-gray-900">
+              <h3 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
                 {selectedProperty
                   ? "Property Verification"
                   : "Document Verification"}
               </h3>
 
               <div className="mb-4">
-                <label className="mb-2 block text-sm font-medium text-gray-300">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Verification Notes
                 </label>
                 <textarea
-                  className="w-full rounded border border-gray-700 bg-gray-800 p-3 text-white"
+                  className="w-full rounded border border-gray-300 bg-white p-3 text-gray-900 placeholder-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   rows={4}
                   value={verificationNotes}
                   onChange={(e) => setVerificationNotes(e.target.value)}
@@ -588,7 +588,7 @@ export default function PropertyVerificationPage() {
 
               <div className="flex justify-end gap-3">
                 <button
-                  className="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-500"
+                  className="rounded bg-gray-300 px-4 py-2 text-gray-900 hover:bg-gray-400 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500"
                   onClick={() => {
                     setSelectedProperty(null);
                     setSelectedDocument(null);

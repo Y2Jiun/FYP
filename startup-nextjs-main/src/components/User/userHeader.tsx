@@ -303,23 +303,23 @@ export default function UserHeader() {
             <Link
               key={item.title}
               href={item.path}
-              className="hover:text-primary rounded px-3 py-2 font-medium text-gray-900 dark:text-white transition-colors duration-200"
+              className="hover:text-primary rounded px-3 py-2 font-medium text-gray-900 transition-colors duration-200 dark:text-white"
             >
               {item.title}
             </Link>
           ))}
           <Menu as="div" className="relative inline-block text-left">
-            <Menu.Button className="hover:text-primary flex items-center gap-1 rounded px-3 py-2 font-medium text-gray-900 dark:text-white transition-colors duration-200">
+            <Menu.Button className="hover:text-primary flex items-center gap-1 rounded px-3 py-2 font-medium text-gray-900 transition-colors duration-200 dark:text-white">
               Other
               <ChevronDownIcon className="h-4 w-4" />
             </Menu.Button>
-            <Menu.Items className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-md bg-[#23272f] shadow-lg ring-1 ring-black/5 focus:outline-none">
+            <Menu.Items className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none dark:bg-[#23272f]">
               <div className="py-1">
                 <Menu.Item>
                   {({ active }) => (
                     <Link
                       href="/user/userCalculator"
-                      className={`block px-4 py-2 text-sm text-gray-900 dark:text-white transition-colors duration-200 ${active ? "bg-gray-700" : ""}`}
+                      className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-700" : ""}`}
                     >
                       Loan Calculator
                     </Link>
@@ -329,7 +329,7 @@ export default function UserHeader() {
                   {({ active }) => (
                     <Link
                       href="/user/userChatbot"
-                      className={`block px-4 py-2 text-sm text-gray-900 dark:text-white transition-colors duration-200 ${active ? "bg-gray-700" : ""}`}
+                      className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-700" : ""}`}
                     >
                       Chatbot
                     </Link>
@@ -339,7 +339,7 @@ export default function UserHeader() {
                   {({ active }) => (
                     <Link
                       href="/user/userFAQ"
-                      className={`block px-4 py-2 text-sm text-gray-900 dark:text-white transition-colors duration-200 ${active ? "bg-gray-700" : ""}`}
+                      className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-700" : ""}`}
                     >
                       FAQ
                     </Link>
@@ -385,7 +385,7 @@ export default function UserHeader() {
                 viewBox="0 0 24 24"
                 strokeWidth={1.5}
                 stroke="currentColor"
-                className="h-7 w-7 text-white"
+                className="h-7 w-7 text-gray-900 dark:text-white"
               >
                 <path
                   strokeLinecap="round"

@@ -64,14 +64,13 @@ export default function UserToAgentPage() {
   return (
     <>
       <UserHeader />
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#23272f] via-[#181c23] to-[#23272f] p-8">
-        <div className="w-full max-w-lg rounded-2xl bg-white/90 p-10 shadow-2xl backdrop-blur-md dark:bg-gray-800/90">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-white dark:bg-[#181c23] p-8">
+        <div className="w-full max-w-lg rounded-2xl bg-white p-10 shadow-2xl dark:bg-gray-800">
           <h2 className="mb-3 text-center text-3xl font-extrabold text-blue-700 drop-shadow-lg dark:text-blue-300">
             Become a Verified Agent
           </h2>
           <p className="mb-2 text-center text-lg text-gray-700 dark:text-gray-200">
-            Unlock exclusive features, list properties, and connect with more
-            clients by becoming a verified agent on DeveloperShield.
+            Unlock exclusive features, list properties, and connect with more clients by becoming a verified agent on DeveloperShield.
           </p>
           <ul className="mb-6 list-disc pl-8 text-sm text-gray-600 dark:text-gray-300">
             <li>Get access to agent-only tools and analytics</li>
@@ -79,9 +78,7 @@ export default function UserToAgentPage() {
             <li>Receive priority support from our team</li>
           </ul>
           <div className="mb-6 rounded-lg bg-blue-50 p-4 text-center text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
-            <span className="font-semibold">How it works:</span> Submit your
-            request below. Our admin team will review your application and
-            notify you once approved.
+            <span className="font-semibold">How it works:</span> Submit your request below. Our admin team will review your application and notify you once approved.
           </div>
           {success ? (
             <div className="mb-4 text-center text-lg font-semibold text-green-600 dark:text-green-400">
@@ -97,8 +94,7 @@ export default function UserToAgentPage() {
             </button>
           ) : agentRequest === 1 ? (
             <div className="mb-4 text-center text-lg font-semibold text-yellow-600 dark:text-yellow-400">
-              You have already submitted a request. Please wait for admin
-              approval.
+              You have already submitted a request. Please wait for admin approval.
             </div>
           ) : null}
           {error && (

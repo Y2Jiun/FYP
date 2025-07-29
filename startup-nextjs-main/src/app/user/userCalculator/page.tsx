@@ -127,9 +127,9 @@ export default function UserLoanCalculator() {
   return (
     <>
       <UserHeader />
-      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[#101726] p-4 dark:bg-[#101726]">
-        <div className="w-full max-w-lg rounded-2xl border border-blue-100 bg-white/70 p-8 shadow-xl backdrop-blur-lg transition-all duration-300 dark:border-gray-700 dark:bg-gray-800/60">
-          <h1 className="dark:text-primary mb-8 text-center text-4xl font-extrabold tracking-wide text-blue-700 drop-shadow-lg">
+      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-white p-4 dark:bg-[#181c23]">
+        <div className="w-full max-w-lg rounded-2xl border border-blue-100 bg-white p-8 shadow-xl transition-all duration-300 dark:border-gray-700 dark:bg-gray-800">
+          <h1 className="mb-8 text-center text-4xl font-extrabold tracking-wide text-blue-700 drop-shadow-lg dark:text-primary">
             Loan Calculator
           </h1>
           <form onSubmit={calculateLoan} className="space-y-6">
@@ -139,7 +139,7 @@ export default function UserLoanCalculator() {
               </label>
               <input
                 type="number"
-                className="w-full rounded-lg border border-blue-200 bg-white/80 px-4 py-3 text-lg transition placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400 focus:outline-none dark:bg-gray-900/40 dark:placeholder:text-gray-500"
+                className="w-full rounded-lg border border-blue-200 bg-white px-4 py-3 text-lg transition placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400 focus:outline-none dark:bg-gray-900 dark:placeholder:text-gray-500"
                 placeholder="500000"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
@@ -157,7 +157,7 @@ export default function UserLoanCalculator() {
               </label>
               <input
                 type="number"
-                className="w-full rounded-lg border border-blue-200 bg-white/80 px-4 py-3 text-lg transition placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400 focus:outline-none dark:bg-gray-900/40 dark:placeholder:text-gray-500"
+                className="w-full rounded-lg border border-blue-200 bg-white px-4 py-3 text-lg transition placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400 focus:outline-none dark:bg-gray-900 dark:placeholder:text-gray-500"
                 placeholder="50000"
                 value={downPayment}
                 min={0}
@@ -171,7 +171,7 @@ export default function UserLoanCalculator() {
               </label>
               <input
                 type="number"
-                className="w-full rounded-lg border border-blue-200 bg-white/80 px-4 py-3 text-lg transition placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400 focus:outline-none dark:bg-gray-900/40 dark:placeholder:text-gray-500"
+                className="w-full rounded-lg border border-blue-200 bg-white px-4 py-3 text-lg transition placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400 focus:outline-none dark:bg-gray-900 dark:placeholder:text-gray-500"
                 placeholder="4"
                 value={interest}
                 min={0}
@@ -187,7 +187,7 @@ export default function UserLoanCalculator() {
                 </label>
                 <input
                   type="number"
-                  className="w-full rounded-lg border border-blue-200 bg-white/80 px-4 py-3 text-lg transition placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400 focus:outline-none dark:bg-gray-900/40 dark:placeholder:text-gray-500"
+                  className="w-full rounded-lg border border-blue-200 bg-white px-4 py-3 text-lg transition placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400 focus:outline-none dark:bg-gray-900 dark:placeholder:text-gray-500"
                   placeholder={tenureType === "years" ? "30" : "360"}
                   value={tenure}
                   onChange={(e) => setTenure(e.target.value)}
@@ -197,7 +197,7 @@ export default function UserLoanCalculator() {
               <div>
                 <label className="mb-1 block font-medium">&nbsp;</label>
                 <select
-                  className="rounded-lg border border-blue-200 bg-white/80 px-3 py-3 text-lg transition focus:ring-2 focus:ring-blue-400 focus:outline-none dark:bg-gray-900/40"
+                  className="rounded-lg border border-blue-200 bg-white px-3 py-3 text-lg transition focus:ring-2 focus:ring-blue-400 focus:outline-none dark:bg-gray-900"
                   value={tenureType}
                   onChange={(e) => setTenureType(e.target.value)}
                 >
@@ -219,47 +219,21 @@ export default function UserLoanCalculator() {
             </button>
           </form>
           {result && (
-            <div className="dark:border-primary/40 mt-10 rounded-2xl border-2 border-blue-200 bg-white/80 p-8 shadow-xl backdrop-blur-md transition-all duration-300 dark:bg-gray-900/70">
-              <h2 className="dark:text-primary mb-4 text-2xl font-extrabold tracking-wide text-blue-700 drop-shadow">
+            <div className="mt-10 rounded-2xl border-2 border-blue-200 bg-white p-8 shadow-xl transition-all duration-300 dark:border-primary/40 dark:bg-gray-900/70">
+              <h2 className="mb-4 text-2xl font-extrabold tracking-wide text-blue-700 drop-shadow dark:text-primary">
                 Results
               </h2>
               <div className="mb-3 text-lg">
-                Monthly Installment:{" "}
-                <span className="font-bold text-blue-700 dark:text-indigo-300">
-                  RM{" "}
-                  {result.monthly.toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
+                Monthly Installment: <span className="font-bold text-blue-700 dark:text-indigo-300">RM {result.monthly.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
               </div>
               <div className="mb-3 text-lg">
-                Total Payment:{" "}
-                <span className="font-bold text-blue-700 dark:text-indigo-300">
-                  RM{" "}
-                  {result.totalPayment.toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
+                Total Payment: <span className="font-bold text-blue-700 dark:text-indigo-300">RM {result.totalPayment.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
               </div>
               <div className="mb-3 text-lg">
-                Total Interest:{" "}
-                <span className="font-bold text-blue-700 dark:text-indigo-300">
-                  RM{" "}
-                  {result.totalInterest.toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
+                Total Interest: <span className="font-bold text-blue-700 dark:text-indigo-300">RM {result.totalInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
               </div>
               <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                Loan Amount:{" "}
-                <span className="font-semibold">
-                  RM{" "}
-                  {result.principal.toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })}
-                </span>{" "}
-                &bull; Tenure:{" "}
-                <span className="font-semibold">{result.n} months</span>
+                Loan Amount: <span className="font-semibold">RM {result.principal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span> • Tenure: <span className="font-semibold">{result.n} months</span>
               </div>
             </div>
           )}

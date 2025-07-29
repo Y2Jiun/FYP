@@ -104,24 +104,26 @@ export default function AdminFAQManagementPage() {
   return (
     <>
       <AdminHeader />
-      <div className="min-h-screen bg-gray-100 py-10 dark:bg-[#181c23]">
-        <div className="mx-auto max-w-4xl rounded-xl bg-[#23272f] p-8 shadow-lg">
-          <h1 className="mb-6 text-3xl font-bold text-white">FAQ Management</h1>
+      <div className="min-h-screen bg-white py-10 dark:bg-[#181c23]">
+        <div className="mx-auto max-w-4xl rounded-xl bg-white p-8 shadow-lg dark:bg-[#23272f]">
+          <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-white">
+            FAQ Management
+          </h1>
           <div className="mb-4 flex gap-4">
             <button
-              className={`rounded px-4 py-2 font-semibold ${filter === "all" ? "bg-primary text-white" : "bg-gray-700 text-gray-300"}`}
+              className={`rounded px-4 py-2 font-semibold ${filter === "all" ? "bg-primary text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300"}`}
               onClick={() => setFilter("all")}
             >
               All
             </button>
             <button
-              className={`rounded px-4 py-2 font-semibold ${filter === "pending" ? "bg-yellow-600 text-white" : "bg-gray-700 text-gray-300"}`}
+              className={`rounded px-4 py-2 font-semibold ${filter === "pending" ? "bg-yellow-600 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300"}`}
               onClick={() => setFilter("pending")}
             >
               Pending
             </button>
             <button
-              className={`rounded px-4 py-2 font-semibold ${filter === "published" ? "bg-green-600 text-white" : "bg-gray-700 text-gray-300"}`}
+              className={`rounded px-4 py-2 font-semibold ${filter === "published" ? "bg-green-600 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300"}`}
               onClick={() => setFilter("published")}
             >
               Published
@@ -139,20 +141,25 @@ export default function AdminFAQManagementPage() {
           )}
           <ul className="space-y-6">
             {filteredFaqs.length === 0 && (
-              <li className="text-gray-300">No FAQs found.</li>
+              <li className="text-gray-500 dark:text-gray-300">
+                No FAQs found.
+              </li>
             )}
             {filteredFaqs.map((faq) => (
-              <li key={faq.faqId} className="rounded bg-gray-800 p-4">
+              <li
+                key={faq.faqId}
+                className="rounded bg-gray-100 p-4 dark:bg-gray-800"
+              >
                 {editing && editing.faqId === faq.faqId ? (
                   <div>
                     <input
                       type="text"
-                      className="mb-2 w-full rounded border border-gray-600 bg-[#23272f] p-2 text-white"
+                      className="mb-2 w-full rounded border border-gray-300 bg-white p-2 text-gray-900 dark:border-gray-600 dark:bg-[#23272f] dark:text-white"
                       value={editQuestion}
                       onChange={(e) => setEditQuestion(e.target.value)}
                     />
                     <textarea
-                      className="mb-2 w-full rounded border border-gray-600 bg-[#23272f] p-2 text-white"
+                      className="mb-2 w-full rounded border border-gray-300 bg-white p-2 text-gray-900 dark:border-gray-600 dark:bg-[#23272f] dark:text-white"
                       value={editAnswer}
                       onChange={(e) => setEditAnswer(e.target.value)}
                     />
@@ -174,7 +181,9 @@ export default function AdminFAQManagementPage() {
                     <div className="text-primary font-bold">
                       Q: {faq.question}
                     </div>
-                    <div className="mt-2 text-gray-200">A: {faq.answer}</div>
+                    <div className="mt-2 text-gray-700 dark:text-gray-200">
+                      A: {faq.answer}
+                    </div>
                     <div className="mt-2 flex gap-2">
                       {faq.status === "pending" && (
                         <button

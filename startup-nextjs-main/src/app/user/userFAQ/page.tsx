@@ -68,26 +68,26 @@ export default function UserFAQPage() {
   const displayFaqs = faqs.length > 0 ? faqs : demoFaqs;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#181c23] to-[#23272f]">
+    <div className="min-h-screen bg-white dark:bg-[#181c23]">
       <UserHeader />
-      <div className="animate-fade-in mx-auto mt-10 max-w-3xl rounded-xl bg-[#23272f] p-8 shadow-2xl">
-        <h1 className="mb-2 text-4xl font-extrabold tracking-tight text-white">
+      <div className="animate-fade-in mx-auto mt-10 max-w-3xl rounded-xl bg-white p-8 shadow-2xl dark:bg-[#23272f]">
+        <h1 className="mb-2 text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
           Frequently Asked Questions
         </h1>
-        <p className="mb-8 text-lg text-gray-300">
+        <p className="mb-8 text-lg text-gray-700 dark:text-gray-300">
           Find answers to common questions about our platform, features, and
           your account security.
         </p>
         {loading ? (
-          <div className="text-gray-300">Loading...</div>
+          <div className="text-gray-500 dark:text-gray-300">Loading...</div>
         ) : displayFaqs.length === 0 ? (
-          <div className="text-gray-300">No FAQs found.</div>
+          <div className="text-gray-500 dark:text-gray-300">No FAQs found.</div>
         ) : (
           <ul className="space-y-6">
             {displayFaqs.map((faq, idx) => (
               <li
                 key={faq.faqId}
-                className="rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-md transition-transform hover:scale-[1.02] hover:shadow-xl"
+                className="rounded-lg border border-gray-300 bg-gray-100 p-6 shadow-md transition-transform hover:scale-[1.02] hover:shadow-xl dark:border-gray-700 dark:bg-gray-800"
               >
                 <button
                   className="flex w-full items-center justify-between text-left focus:outline-none"
@@ -104,7 +104,7 @@ export default function UserFAQPage() {
                 <div
                   className={`overflow-hidden transition-all duration-300 ${openIndex === idx ? "mt-3 max-h-40 opacity-100" : "max-h-0 opacity-0"}`}
                 >
-                  <div className="text-base leading-relaxed text-gray-200">
+                  <div className="text-base leading-relaxed text-gray-700 dark:text-gray-200">
                     A: {faq.answer}
                   </div>
                 </div>

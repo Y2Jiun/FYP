@@ -150,17 +150,17 @@ export default function AdminNotificationPage() {
   return (
     <>
       <AdminHeader />
-      <div className="min-h-screen bg-gray-100 py-10 dark:bg-[#181c23]">
+      <div className="min-h-screen bg-white py-10 dark:bg-[#181c23]">
         <div className="mx-auto max-w-3xl space-y-8">
           {/* Notification List Card */}
-          <div className="rounded-xl bg-[#23272f] p-6 shadow-lg">
-            <h2 className="mb-4 text-2xl font-bold text-white">
+          <div className="rounded-xl bg-white p-6 shadow-lg dark:bg-[#23272f]">
+            <h2 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">
               All Notifications
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full overflow-hidden rounded-lg text-sm">
                 <thead>
-                  <tr className="bg-gray-800 text-gray-300">
+                  <tr className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                     <th className="p-2 text-left">Title</th>
                     <th className="p-2 text-left">Audience</th>
                     <th className="p-2 text-left">Type</th>
@@ -171,7 +171,7 @@ export default function AdminNotificationPage() {
                 <tbody>
                   {notifications.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="p-2 text-center text-gray-400">
+                      <td colSpan={5} className="p-2 text-center text-gray-500 dark:text-gray-400">
                         No notifications found.
                       </td>
                     </tr>
@@ -179,35 +179,30 @@ export default function AdminNotificationPage() {
                   {notifications.map((notif, idx) => (
                     <tr
                       key={notif.NotificationID}
-                      className={`border-t border-gray-700 transition hover:bg-gray-800 ${
-                        idx % 2 === 0 ? "bg-[#23272f]" : "bg-[#1a1e26]"
-                      }`}
+                      className={`border-t border-gray-300 transition hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800 ${idx % 2 === 0 ? "bg-white dark:bg-[#23272f]" : "bg-gray-50 dark:bg-[#1a1e26]"}`}
                     >
-                      <td
-                        className="max-w-xs truncate p-2 text-white"
-                        title={notif.title}
-                      >
+                      <td className="max-w-xs truncate p-2 text-gray-900 dark:text-white" title={notif.title}>
                         {notif.title}
                       </td>
-                      <td className="p-2 text-gray-300">
+                      <td className="p-2 text-gray-700 dark:text-gray-300">
                         {audienceMap[notif.audience]}
                       </td>
-                      <td className="p-2 text-gray-300">
+                      <td className="p-2 text-gray-700 dark:text-gray-300">
                         {typeMap[notif.type]}
                       </td>
-                      <td className="p-2 text-gray-400">
+                      <td className="p-2 text-gray-500 dark:text-gray-400">
                         {notif.createdAt?.toDate?.().toLocaleString?.() || "-"}
                       </td>
                       <td className="flex gap-2 p-2">
                         <button
-                          className="text-blue-400 transition hover:text-blue-200"
+                          className="text-blue-600 transition hover:text-blue-400 dark:text-blue-400 dark:hover:text-blue-200"
                           onClick={() => handleEdit(notif)}
                           title="Edit"
                         >
                           ✏️
                         </button>
                         <button
-                          className="text-red-400 transition hover:text-red-200"
+                          className="text-red-600 transition hover:text-red-400 dark:text-red-400 dark:hover:text-red-200"
                           onClick={() => handleDelete(notif.NotificationID)}
                           title="Delete"
                         >
@@ -222,11 +217,9 @@ export default function AdminNotificationPage() {
           </div>
 
           {/* Notification Form Card */}
-          <div className="rounded-xl bg-[#23272f] p-6 shadow-lg">
-            <h2 className="mb-4 text-2xl font-bold text-white">
-              {editingId
-                ? "Edit Notification"
-                : "Send Notification / Announcement"}
+          <div className="rounded-xl bg-white p-6 shadow-lg dark:bg-[#23272f]">
+            <h2 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">
+              {editingId ? "Edit Notification" : "Send Notification / Announcement"}
             </h2>
             {error && (
               <div className="mb-2 rounded bg-red-600 px-4 py-2 text-white transition-opacity duration-500">
@@ -239,43 +232,37 @@ export default function AdminNotificationPage() {
               </div>
             )}
             <div className="mb-4">
-              <label className="mb-1 block font-semibold text-white">
+              <label className="mb-1 block font-semibold text-gray-900 dark:text-white">
                 Title
               </label>
               <input
                 type="text"
                 placeholder="Enter notification title"
-                className="w-full rounded border border-gray-600 bg-[#23272f] p-2 text-white"
+                className="w-full rounded border border-gray-300 bg-white p-2 text-gray-900 dark:border-gray-600 dark:bg-[#23272f] dark:text-white"
                 value={form.title}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, title: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               />
             </div>
             <div className="mb-4">
-              <label className="mb-1 block font-semibold text-white">
+              <label className="mb-1 block font-semibold text-gray-900 dark:text-white">
                 Content
               </label>
               <textarea
                 placeholder="Enter notification content"
-                className="min-h-[100px] w-full rounded border border-gray-600 bg-[#23272f] p-2 text-white"
+                className="min-h-[100px] w-full rounded border border-gray-300 bg-white p-2 text-gray-900 dark:border-gray-600 dark:bg-[#23272f] dark:text-white"
                 value={form.content}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, content: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
               />
             </div>
             <div className="mb-4 flex gap-4">
               <div className="flex-1">
-                <label className="mb-1 block font-semibold text-white">
+                <label className="mb-1 block font-semibold text-gray-900 dark:text-white">
                   Audience
                 </label>
                 <select
-                  className="w-full rounded border border-gray-600 bg-[#23272f] p-2 text-white"
+                  className="w-full rounded border border-gray-300 bg-white p-2 text-gray-900 dark:border-gray-600 dark:bg-[#23272f] dark:text-white"
                   value={form.audience}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, audience: Number(e.target.value) }))
-                  }
+                  onChange={(e) => setForm((f) => ({ ...f, audience: Number(e.target.value) }))}
                 >
                   <option value={1}>User</option>
                   <option value={2}>Agent</option>
@@ -283,20 +270,20 @@ export default function AdminNotificationPage() {
                 </select>
               </div>
               <div className="flex-1">
-                <label className="mb-1 block font-semibold text-white">
+                <label className="mb-1 block font-semibold text-gray-900 dark:text-white">
                   Type
                 </label>
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    className={`flex-1 rounded border px-4 py-2 font-semibold ${form.type === 0 ? "border-blue-600 bg-blue-600 text-white" : "border-gray-600 bg-[#23272f] text-gray-300"}`}
+                    className={`flex-1 rounded border px-4 py-2 font-semibold ${form.type === 0 ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-[#23272f] dark:text-gray-300"}`}
                     onClick={() => setForm((f) => ({ ...f, type: 0 }))}
                   >
                     Notification
                   </button>
                   <button
                     type="button"
-                    className={`flex-1 rounded border px-4 py-2 font-semibold ${form.type === 1 ? "border-blue-600 bg-blue-600 text-white" : "border-gray-600 bg-[#23272f] text-gray-300"}`}
+                    className={`flex-1 rounded border px-4 py-2 font-semibold ${form.type === 1 ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-[#23272f] dark:text-gray-300"}`}
                     onClick={() => setForm((f) => ({ ...f, type: 1 }))}
                   >
                     Announcement
