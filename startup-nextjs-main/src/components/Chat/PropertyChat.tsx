@@ -14,6 +14,8 @@ import {
   where,
   getDocs,
   setDoc,
+  deleteDoc,
+  arrayUnion,
 } from "firebase/firestore";
 import { moderateText, moderateImage, ModerationResult } from "@/utils/api";
 
@@ -31,12 +33,15 @@ type Message = {
   id: string;
   messageId: string;
   senderId: string;
+  senderUID: string;
+  senderName: string;
   userUID: string;
   content: string;
   imageUrl: string;
   timestamp: any;
   moderationStatus: string;
   flaggedReason: string;
+  readBy: string[]; // Array of user UIDs who have read this message
 };
 
 export default function PropertyChat({
@@ -57,6 +62,15 @@ export default function PropertyChat({
   const [userData, setUserData] = useState<any>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(
+    null,
+  );
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<{
+    id: string;
+    messageId: string;
+  } | null>(null);
+  const [successMessage, setSuccessMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -133,11 +147,15 @@ export default function PropertyChat({
   useEffect(() => {
     if (propChatId) {
       setChatId(propChatId);
+      console.log("Using provided chatId:", propChatId);
       return; // If chatId is provided, don't create a new one
     }
 
     const getOrCreateChat = async () => {
-      if (!currentUser || !userData) return;
+      if (!currentUser || !userData) {
+        console.log("Waiting for currentUser or userData...");
+        return;
+      }
 
       try {
         // Determine if current user is the agent or the user
@@ -145,84 +163,119 @@ export default function PropertyChat({
         console.log("Current user is agent:", isAgent);
         console.log("Current user UID:", currentUser.uid);
         console.log("Agent UID:", agentUID);
+        console.log("Property ID:", propertyId);
 
-        // Use the appropriate agentID - if current user is agent, use their userID, otherwise use passed agentID
-        const effectiveAgentID = isAgent ? userData.userID : agentID;
-        console.log("Effective agent ID:", effectiveAgentID);
-
-        // Check if chat already exists
-        const chatsRef = collection(db, "chats");
-        const q = query(
-          chatsRef,
-          where("propertyId", "==", propertyId),
-          where("userUID", "==", currentUser.uid),
-          where("agentUID", "==", agentUID),
-        );
-        const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
-          // Chat exists, use existing chatId
-          const existingChat = snapshot.docs[0];
-          setChatId(existingChat.id);
-
-          // Update user info if not set
-          if (!existingChat.data().userID || !existingChat.data().userUID) {
-            await updateDoc(doc(db, "chats", existingChat.id), {
-              userID: userData.userID,
-              userUID: currentUser.uid,
-            });
-          }
+        // Always use propertyId, agentUID, and userUID for uniqueness
+        let chatQuery;
+        let chatUserUID;
+        let chatUserID;
+        if (isAgent) {
+          chatUserUID = propUserUID;
+          chatUserID = propUserID;
         } else {
-          // Generate next chat ID
-          const querySnapshot = await getDocs(collection(db, "chats"));
-          let maxId = 0;
-          querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            const idStr = (data.chatId || doc.id || "").replace("CHAT", "");
-            const idNum = parseInt(idStr, 10);
-            if (!isNaN(idNum) && idNum > maxId) maxId = idNum;
-          });
-          const nextChatId = `CHAT${String(maxId + 1).padStart(3, "0")}`;
-
-          // Create new chat with all required fields
-          await setDoc(doc(db, "chats", nextChatId), {
-            chatId: nextChatId,
+          chatUserUID = currentUser.uid;
+          chatUserID = userData.userID;
+        }
+        chatQuery = query(
+          collection(db, "chats"),
+          where("propertyId", "==", propertyId),
+          where("agentUID", "==", agentUID),
+          where("userUID", "==", chatUserUID),
+        );
+        const chatSnapshot = await getDocs(chatQuery);
+        if (!chatSnapshot.empty) {
+          const chatDoc = chatSnapshot.docs[0];
+          setChatId(chatDoc.id);
+          console.log("Found existing chat:", chatDoc.id);
+        } else {
+          // Create new chat for this specific user-agent-property combination
+          const newChatRef = await addDoc(collection(db, "chats"), {
             propertyId,
-            agentID: effectiveAgentID,
             agentUID,
-            userID: userData.userID,
-            userUID: currentUser.uid,
+            agentID,
+            userUID: chatUserUID,
+            userID: chatUserID,
             createdAt: serverTimestamp(),
           });
-          setChatId(nextChatId);
+          setChatId(newChatRef.id);
+          console.log("Created new chat:", newChatRef.id);
         }
-      } catch (err) {
-        console.error("Error getting/creating chat:", err);
-        console.error("Current user:", currentUser?.uid);
-        console.error("User data:", userData);
-        console.error("Property ID:", propertyId);
-        console.error("Agent UID:", agentUID);
-        console.error("Agent ID:", agentID);
-        setError("Failed to initialize chat.");
+      } catch (error) {
+        console.error("Error getting or creating chat:", error);
+        setError("Failed to initialize chat. Please try again.");
       }
     };
 
     getOrCreateChat();
-  }, [currentUser, userData, propertyId, agentUID, agentID, propChatId]);
+  }, [
+    currentUser,
+    userData,
+    propertyId,
+    agentUID,
+    agentID,
+    propUserUID,
+    propUserID,
+    propChatId,
+  ]);
+
+  // Mark all messages in this chat as read by current user
+  const markMessagesAsRead = async () => {
+    if (!chatId || !currentUser) return;
+
+    try {
+      console.log("Marking messages as read for user:", currentUser.uid);
+
+      // Get all messages that haven't been read by current user
+      const messagesQuery = query(
+        collection(db, "chats", chatId, "messages"),
+        where("readBy", "not-in", [[currentUser.uid]]),
+      );
+
+      const snapshot = await getDocs(messagesQuery);
+
+      // Update each message to add current user to readBy array
+      const updatePromises = snapshot.docs.map(async (docSnap) => {
+        await updateDoc(docSnap.ref, {
+          readBy: arrayUnion(currentUser.uid),
+        });
+      });
+
+      await Promise.all(updatePromises);
+      console.log(`Marked ${snapshot.docs.length} messages as read`);
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+    }
+  };
 
   // Listen for messages in real-time
   useEffect(() => {
-    if (!chatId) return;
+    if (!chatId) {
+      console.log("No chatId available, skipping message listener");
+      return;
+    }
 
+    console.log("Setting up message listener for chatId:", chatId);
     const q = query(
       collection(db, "chats", chatId, "messages"),
       orderBy("timestamp"),
     );
-    const unsub = onSnapshot(q, (snapshot) => {
-      setMessages(
-        snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Message),
-      );
-    });
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        console.log("Received message update, count:", snapshot.docs.length);
+        const newMessages = snapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() }) as Message,
+        );
+        console.log("New messages:", newMessages);
+        setMessages(newMessages);
+
+        // Mark messages as read when chat is opened
+        markMessagesAsRead();
+      },
+      (error) => {
+        console.error("Error listening to messages:", error);
+      },
+    );
     return () => unsub();
   }, [chatId]);
 
@@ -305,6 +358,9 @@ export default function PropertyChat({
     setError("");
 
     try {
+      // Determine if current user is the agent
+      const isAgent = currentUser.uid === agentUID;
+
       // 1. Moderate the text content first (if there's text)
       if (input.trim()) {
         let moderation: ModerationResult;
@@ -360,29 +416,52 @@ export default function PropertyChat({
         }
       }
 
-      // 4. Generate sequential message ID
-      const messagesRef = collection(db, "chats", chatId, "messages");
-      const messagesSnap = await getDocs(messagesRef);
-      const nextMsgNum = messagesSnap.size + 1;
-      const messageId = `MSG${String(nextMsgNum).padStart(3, "0")}`;
+      // 4. Save to Firestore
+      try {
+        // Generate next sequential message ID
+        const messagesSnapshot = await getDocs(
+          collection(db, "chats", chatId, "messages"),
+        );
+        let maxMsgNum = 0;
+        messagesSnapshot.docs.forEach((doc) => {
+          const id = doc.id;
+          const match = id.match(/^MSG(\d+)$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxMsgNum) maxMsgNum = num;
+          }
+        });
+        const messageId = `MSG${String(maxMsgNum + 1).padStart(3, "0")}`;
 
-      // 5. Save message to Firestore
-      await setDoc(doc(messagesRef, messageId), {
-        messageId,
-        senderId: userData.userID,
-        userUID: currentUser.uid,
-        content: input,
-        imageUrl: imageUrl,
-        timestamp: serverTimestamp(),
-        moderationStatus: "approved",
-        flaggedReason: "",
-      });
+        const messageData = {
+          senderId: isAgent ? agentID : userData.userID,
+          senderUID: currentUser.uid,
+          senderName: userData.username,
+          userUID: isAgent ? propUserUID : currentUser.uid,
+          content: input,
+          imageUrl: imageUrl,
+          timestamp: serverTimestamp(),
+          moderationStatus: "approved",
+          readBy: [currentUser.uid], // Sender has read their own message
+          messageId,
+        };
 
-      setInput("");
-      removeImage();
+        console.log("Sending message with data:", messageData);
+        await setDoc(
+          doc(db, "chats", chatId, "messages", messageId),
+          messageData,
+        );
+
+        setInput("");
+        removeImage();
+        setError(""); // Clear any previous errors
+      } catch (err) {
+        console.error("Error saving message to Firestore:", err);
+        setError("Failed to send message. Please try again.");
+      }
     } catch (err) {
       console.error("Error sending message:", err);
-      setError("Failed to send message.");
+      setError("Failed to send message. Please try again.");
     } finally {
       setSending(false);
     }
@@ -393,6 +472,47 @@ export default function PropertyChat({
       e.preventDefault();
       handleSend();
     }
+  };
+
+  // Show delete confirmation dialog
+  const showDeleteConfirmation = (messageId: string, messageDocId: string) => {
+    setMessageToDelete({ id: messageDocId, messageId });
+    setShowDeleteConfirm(true);
+  };
+
+  // Delete message function
+  const deleteMessage = async (messageId: string, messageDocId: string) => {
+    if (!chatId) return;
+
+    setDeletingMessageId(messageId);
+    try {
+      // Delete the message from Firestore
+      await deleteDoc(doc(db, "chats", chatId, "messages", messageDocId));
+      setError("");
+      setSuccessMessage("Message deleted successfully!");
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (err) {
+      console.error("Error deleting message:", err);
+      setError("Failed to delete message. Please try again.");
+    } finally {
+      setDeletingMessageId(null);
+      setShowDeleteConfirm(false);
+      setMessageToDelete(null);
+    }
+  };
+
+  // Confirm delete action
+  const confirmDelete = () => {
+    if (messageToDelete) {
+      deleteMessage(messageToDelete.messageId, messageToDelete.id);
+    }
+  };
+
+  // Cancel delete action
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setMessageToDelete(null);
   };
 
   if (!currentUser) {
@@ -454,33 +574,41 @@ export default function PropertyChat({
               <div
                 key={msg.id}
                 className={`mb-4 flex ${
-                  msg.senderId === userData?.userID
+                  msg.senderUID === currentUser?.uid
                     ? "justify-end"
                     : "justify-start"
                 }`}
               >
                 <div
                   className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                    msg.senderId === userData?.userID
+                    msg.senderUID === currentUser?.uid
                       ? "bg-blue-500 text-white"
                       : "bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white"
                   }`}
                 >
-                  {msg.content && <p className="mb-2">{msg.content}</p>}
+                  <p className="text-sm">{msg.content}</p>
                   {msg.imageUrl && (
-                    <div className="mb-2">
-                      <img
-                        src={msg.imageUrl}
-                        alt="Chat image"
-                        className="max-w-full rounded-lg"
-                        style={{ maxHeight: "200px" }}
-                      />
-                    </div>
+                    <img
+                      src={msg.imageUrl}
+                      alt="Shared image"
+                      className="mt-2 max-h-48 rounded object-cover"
+                    />
                   )}
-                  <p className="text-xs opacity-70">
-                    {msg.timestamp?.toDate?.().toLocaleTimeString() ||
-                      "Just now"}
-                  </p>
+                  <div className="mt-1 flex items-center justify-between">
+                    <p className="text-xs opacity-70">
+                      {msg.timestamp?.toDate?.().toLocaleTimeString() ||
+                        "Just now"}
+                    </p>
+                    {msg.senderUID === currentUser?.uid && (
+                      <button
+                        onClick={() => deleteMessage(msg.messageId, msg.id)}
+                        disabled={deletingMessageId === msg.messageId}
+                        className="ml-2 text-xs text-red-500 hover:text-red-600"
+                      >
+                        🗑️
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
@@ -542,7 +670,39 @@ export default function PropertyChat({
             </button>
           </div>
           {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+          {successMessage && (
+            <p className="mt-2 text-sm text-green-500">{successMessage}</p>
+          )}
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && messageToDelete && (
+          <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+            <div className="rounded-lg bg-white p-6 dark:bg-gray-800">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Confirm Deletion
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Are you sure you want to delete this message? This action cannot
+                be undone.
+              </p>
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  onClick={cancelDelete}
+                  className="rounded bg-gray-300 px-4 py-2 text-gray-800 hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -15,6 +15,10 @@ import {
   addDoc,
   setDoc,
   doc,
+  getDoc,
+  onSnapshot,
+  updateDoc,
+  arrayUnion,
 } from "firebase/firestore";
 import { serverTimestamp } from "firebase/firestore";
 
@@ -43,12 +47,47 @@ function getStatusColor(status: string) {
   }
 }
 
-function ChatUserListModal({ propertyId, agentUID, onClose }) {
+function ChatUserListModal({
+  propertyId,
+  agentUID,
+  onClose,
+  refreshUnreadCount,
+}) {
   const [userChats, setUserChats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showChat, setShowChat] = useState(false);
   const [agentData, setAgentData] = useState(null);
+  const [activeTab, setActiveTab] = useState(null);
+
+  // Mark all messages in a chat as read for the current agent
+  const markChatMessagesAsRead = async (chatId) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    try {
+      console.log("Marking messages as read for chat:", chatId);
+      const messagesQuery = query(
+        collection(db, "chats", chatId, "messages"),
+        where("moderationStatus", "==", "approved"),
+      );
+      const snapshot = await getDocs(messagesQuery);
+
+      const updatePromises = snapshot.docs.map(async (docSnap) => {
+        const data = docSnap.data();
+        if (!data.readBy || !data.readBy.includes(currentUser.uid)) {
+          await updateDoc(docSnap.ref, {
+            readBy: arrayUnion(currentUser.uid),
+          });
+        }
+      });
+
+      await Promise.all(updatePromises);
+      console.log(`Marked ${snapshot.docs.length} messages as read for agent`);
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+    }
+  };
 
   // Fetch agent data
   useEffect(() => {
@@ -122,53 +161,142 @@ function ChatUserListModal({ propertyId, agentUID, onClose }) {
     async function fetchChats() {
       setLoading(true);
       try {
-        // Find all chats for this property and agent
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          console.log("❌ No current user found for chat fetching");
+          return;
+        }
+
+        console.log("🔍 DEBUGGING CHAT FETCHING:");
+        console.log("📍 Current agent UID:", currentUser.uid);
+        console.log("📍 Property ID:", propertyId);
+        console.log("📍 Property agentUID:", agentUID);
+
+        // STEP 1: Check ALL chats in the database
+        console.log("📊 STEP 1: Checking ALL chats in database...");
+        const allChatsInDB = await getDocs(collection(db, "chats"));
+        console.log("📊 Total chats in database:", allChatsInDB.docs.length);
+        allChatsInDB.docs.forEach((doc, index) => {
+          const data = doc.data();
+          console.log(`📊 Chat ${index + 1} (${doc.id}):`, {
+            propertyId: data.propertyId,
+            agentUID: data.agentUID,
+            userUID: data.userUID,
+            userID: data.userID,
+          });
+        });
+
+        // STEP 2: Check ALL chats for this specific property
+        console.log("📊 STEP 2: Checking ALL chats for this property...");
+        const allChatsQuery = query(
+          collection(db, "chats"),
+          where("propertyId", "==", propertyId),
+        );
+        const allChatsSnapshot = await getDocs(allChatsQuery);
+        console.log(
+          "📊 All chats for this property:",
+          allChatsSnapshot.docs.length,
+        );
+        allChatsSnapshot.docs.forEach((doc, index) => {
+          const data = doc.data();
+          console.log(`📊 Property Chat ${index + 1} (${doc.id}):`, {
+            propertyId: data.propertyId,
+            agentUID: data.agentUID,
+            userUID: data.userUID,
+            userID: data.userID,
+            chatId: data.chatId,
+          });
+        });
+
+        // STEP 3: Check chats for this property and current agent
+        console.log(
+          "📊 STEP 3: Checking chats for property + current agent...",
+        );
+
+        // Now that ChatButton creates unique chats, we can filter by current agent
         const q = query(
           collection(db, "chats"),
           where("propertyId", "==", propertyId),
-          where("agentUID", "==", agentUID),
+          where("agentUID", "==", currentUser.uid),
         );
         const snapshot = await getDocs(q);
+
+        console.log(
+          "📊 Found",
+          snapshot.docs.length,
+          "chats for this property and current agent",
+        );
+        snapshot.docs.forEach((doc, index) => {
+          const data = doc.data();
+          console.log(`📊 Agent Chat ${index + 1} (${doc.id}):`, data);
+        });
+
         const chats = await Promise.all(
           snapshot.docs.map(async (docSnap) => {
             const chat = docSnap.data();
+            console.log("📊 Processing chat:", chat);
+
             // Count unread messages for this chat
             const msgQ = query(
               collection(db, "chats", docSnap.id, "messages"),
               where("moderationStatus", "==", "approved"),
-              where("readByAgent", "==", false),
             );
             const msgSnap = await getDocs(msgQ);
+
+            // Count messages where current agent's UID is not in readBy array
+            const unreadCount = msgSnap.docs.filter((doc) => {
+              const messageData = doc.data();
+              const readBy = messageData.readBy || [];
+              return !readBy.includes(currentUser.uid);
+            }).length;
+
             return {
               ...chat,
               chatId: docSnap.id,
-              unread: msgSnap.size,
+              unread: unreadCount,
             };
           }),
         );
+
+        console.log("📊 Final processed chats:", chats);
         setUserChats(chats);
+
+        // Set first chat as active if available and no active tab is set
+        if (chats.length > 0 && !activeTab) {
+          console.log("📊 Setting first chat as active:", chats[0].chatId);
+          setActiveTab(chats[0].chatId);
+          setSelectedUser(chats[0]);
+        }
       } catch (error) {
-        console.error("Error fetching chats:", error);
+        console.error("❌ Error fetching chats:", error);
       } finally {
         setLoading(false);
       }
     }
     fetchChats();
-  }, [propertyId, agentUID, showChat]);
+  }, [propertyId, agentUID]); // Removed activeTab from dependencies
 
   // Function to create a new chat if it doesn't exist
   const createNewChat = async (userUID, userID) => {
     try {
+      console.log("🔧 CREATING NEW CHAT:");
+      console.log("📍 User UID:", userUID);
+      console.log("📍 User ID:", userID);
+      console.log("📍 Property ID:", propertyId);
+
       if (!agentData) {
-        console.error("Agent data not available");
+        console.error("❌ Agent data not available");
         return null;
       }
 
-      console.log("Creating new chat with agent data:", agentData);
-      console.log("User UID:", userUID);
-      console.log("User ID:", userID);
-      console.log("Property ID:", propertyId);
-      console.log("Agent UID:", agentUID);
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        console.error("❌ No current user found for chat creation");
+        return null;
+      }
+
+      console.log("📍 Current Agent UID:", currentUser.uid);
+      console.log("📍 Agent Data:", agentData);
 
       // Generate next chat ID
       const querySnapshot = await getDocs(collection(db, "chats"));
@@ -181,31 +309,38 @@ function ChatUserListModal({ propertyId, agentUID, onClose }) {
       });
       const nextChatId = `CHAT${String(maxId + 1).padStart(3, "0")}`;
 
-      console.log("Generated chat ID:", nextChatId);
+      console.log("📍 Generated chat ID:", nextChatId);
 
       // Create new chat with all required fields
       const chatData = {
         chatId: nextChatId,
         propertyId,
         agentID: agentData.agentID,
-        agentUID,
+        agentUID: currentUser.uid, // Use current agent's UID
         userID,
         userUID,
         createdAt: serverTimestamp(),
       };
 
-      console.log("Creating chat with data:", chatData);
+      console.log("📍 Creating chat with data:", chatData);
 
       await setDoc(doc(db, "chats", nextChatId), chatData);
-      console.log("Chat created successfully");
+      console.log("✅ Chat created successfully with ID:", nextChatId);
+
+      // Verify the chat was created correctly
+      const verifyDoc = await getDoc(doc(db, "chats", nextChatId));
+      console.log(
+        "📍 Verification - Chat data after creation:",
+        verifyDoc.data(),
+      );
+
       return nextChatId;
     } catch (error) {
-      console.error("Error creating chat:", error);
-      console.error("Agent data:", agentData);
-      console.error("User UID:", userUID);
-      console.error("User ID:", userID);
-      console.error("Property ID:", propertyId);
-      console.error("Agent UID:", agentUID);
+      console.error("❌ Error creating chat:", error);
+      console.error("📍 Agent data:", agentData);
+      console.error("📍 User UID:", userUID);
+      console.error("📍 User ID:", userID);
+      console.error("📍 Property ID:", propertyId);
       return null;
     }
   };
@@ -219,7 +354,10 @@ function ChatUserListModal({ propertyId, agentUID, onClose }) {
       }
     }
     setSelectedUser(chat);
+    setActiveTab(chat.chatId);
     setShowChat(true);
+    await markChatMessagesAsRead(chat.chatId); // Mark messages as read when opening chat
+    refreshUnreadCount(propertyId); // Refresh unread count after marking as read
   };
 
   if (loading)
@@ -233,10 +371,10 @@ function ChatUserListModal({ propertyId, agentUID, onClose }) {
 
   return (
     <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
-      <div className="w-full max-w-lg rounded-lg bg-white p-6 dark:bg-gray-800">
-        <div className="mb-4 flex items-center justify-between">
+      <div className="flex h-3/4 w-full max-w-4xl flex-col rounded-lg bg-white dark:bg-gray-800">
+        <div className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Chats for this Property
+            Property Chat Management
           </h2>
           <button
             onClick={onClose}
@@ -245,73 +383,138 @@ function ChatUserListModal({ propertyId, agentUID, onClose }) {
             ✕
           </button>
         </div>
-        {userChats.length === 0 ? (
-          <div className="text-gray-600 dark:text-gray-300">
-            No user chats yet.
-          </div>
-        ) : (
-          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-            {userChats.map((chat) => (
-              <li
-                key={chat.chatId}
-                className="flex items-center justify-between py-3"
-              >
-                <div>
-                  <div className="font-medium text-gray-900 dark:text-white">
-                    User ID: {chat.userID || chat.userUid}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Chat ID: {chat.chatId}
-                  </div>
+
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left Sidebar - User List */}
+          <div className="w-1/3 overflow-y-auto border-r border-gray-200 dark:border-gray-700">
+            <div className="p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  User Chats ({userChats.length})
+                </h3>
+                <button
+                  onClick={() => {
+                    console.log("🔄 MANUAL REFRESH TRIGGERED");
+                    setLoading(true);
+                    // Force refresh by clearing and refetching
+                    setUserChats([]);
+                    setActiveTab(null);
+                    setSelectedUser(null);
+                    // The useEffect will automatically refetch
+                  }}
+                  className="rounded p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600"
+                  title="Refresh chats"
+                >
+                  🔄
+                </button>
+                <button
+                  onClick={async () => {
+                    console.log("🔍 MANUAL CHECK ALL CHATS");
+                    try {
+                      const allChats = await getDocs(collection(db, "chats"));
+                      console.log(
+                        "🔍 ALL CHATS IN DATABASE:",
+                        allChats.docs.length,
+                      );
+                      allChats.docs.forEach((doc, index) => {
+                        const data = doc.data();
+                        console.log(`🔍 Chat ${index + 1}:`, {
+                          id: doc.id,
+                          propertyId: data.propertyId,
+                          agentUID: data.agentUID,
+                          userUID: data.userUID,
+                          userID: data.userID,
+                        });
+                      });
+                      alert(
+                        `Found ${allChats.docs.length} total chats in database. Check console for details.`,
+                      );
+                    } catch (error) {
+                      console.error("Error checking chats:", error);
+                    }
+                  }}
+                  className="rounded p-1 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-600"
+                  title="Check all chats"
+                >
+                  🔍
+                </button>
+              </div>
+              {userChats.length === 0 ? (
+                <div className="text-sm text-gray-600 dark:text-gray-300">
+                  {loading ? "Loading chats..." : "No user chats yet."}
                 </div>
-                <div className="flex items-center gap-2">
-                  {chat.unread > 0 && (
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs text-white">
-                      {chat.unread}
-                    </span>
-                  )}
-                  <button
-                    className="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600"
-                    onClick={() => handleOpenChat(chat)}
-                  >
-                    Open Chat
-                  </button>
+              ) : (
+                <div className="space-y-2">
+                  {userChats.map((chat) => (
+                    <div
+                      key={chat.chatId}
+                      className={`cursor-pointer rounded-lg p-3 transition-colors ${
+                        activeTab === chat.chatId
+                          ? "border border-blue-300 bg-blue-100 dark:border-blue-600 dark:bg-blue-900"
+                          : "bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600"
+                      }`}
+                      onClick={() => handleOpenChat(chat)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            User: {chat.userID || chat.userUid || "Unknown"}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Chat ID: {chat.chatId}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            User UID: {chat.userUID || "Unknown"}
+                          </div>
+                        </div>
+                        {chat.unread > 0 && (
+                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs text-white">
+                            {chat.unread}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </li>
-            ))}
-          </ul>
-        )}
-        {showChat && selectedUser && agentData ? (
-          <PropertyChat
-            propertyId={propertyId}
-            agentUID={agentUID}
-            agentID={agentData.agentID}
-            userUID={selectedUser.userUID}
-            userID={selectedUser.userID}
-            chatId={selectedUser.chatId}
-            onClose={() => {
-              setShowChat(false);
-              setSelectedUser(null);
-            }}
-          />
-        ) : showChat && selectedUser && !agentData ? (
-          <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
-            <div className="rounded-lg bg-white p-6 dark:bg-gray-800">
-              <p className="text-center text-gray-600 dark:text-gray-300">
-                Loading agent data...
-              </p>
-              <button
-                onClick={() => {
-                  setShowChat(false);
-                  setSelectedUser(null);
-                }}
-                className="mt-4 w-full rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-              >
-                Close
-              </button>
+              )}
             </div>
           </div>
-        ) : null}
+
+          {/* Right Side - Chat Window */}
+          <div className="flex flex-1 flex-col">
+            {showChat && selectedUser && agentData ? (
+              <PropertyChat
+                propertyId={propertyId}
+                agentUID={auth.currentUser?.uid || ""}
+                agentID={agentData.agentID}
+                userUID={selectedUser.userUID}
+                userID={selectedUser.userID}
+                chatId={selectedUser.chatId}
+                onClose={() => {
+                  setShowChat(false);
+                  setSelectedUser(null);
+                  setActiveTab(null);
+                  // Refresh unread count when chat is closed
+                  refreshUnreadCount(propertyId);
+                }}
+              />
+            ) : (
+              <div className="flex flex-1 items-center justify-center">
+                <div className="text-center">
+                  <div className="mb-4 text-6xl text-gray-400 dark:text-gray-500">
+                    💬
+                  </div>
+                  <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">
+                    Select a User Chat
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Choose a user from the list to start messaging
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -322,27 +525,122 @@ export default function AgentPropertyList() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const [showUserList, setShowUserList] = useState<string | null>(null);
+  const [propertyUnreadCounts, setPropertyUnreadCounts] = useState<{
+    [key: string]: number;
+  }>({});
+
+  // Function to refresh unread counts for a specific property
+  const refreshUnreadCount = async (propertyId: string) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    try {
+      // Get all chats for this property and current agent
+      const chatsQuery = query(
+        collection(db, "chats"),
+        where("propertyId", "==", propertyId),
+        where("agentUID", "==", currentUser.uid),
+      );
+      const chatsSnapshot = await getDocs(chatsQuery);
+
+      let totalUnread = 0;
+      for (const chatDoc of chatsSnapshot.docs) {
+        // Get all messages in this chat
+        const messagesQuery = query(
+          collection(db, "chats", chatDoc.id, "messages"),
+          where("moderationStatus", "==", "approved"),
+        );
+        const messagesSnapshot = await getDocs(messagesQuery);
+
+        // Count unread messages
+        const unreadInChat = messagesSnapshot.docs.filter((doc) => {
+          const messageData = doc.data();
+          const readBy = messageData.readBy || [];
+          return !readBy.includes(currentUser.uid);
+        }).length;
+
+        totalUnread += unreadInChat;
+      }
+
+      setPropertyUnreadCounts((prev) => ({
+        ...prev,
+        [propertyId]: totalUnread,
+      }));
+    } catch (error) {
+      console.error(
+        `Error refreshing unread count for property ${propertyId}:`,
+        error,
+      );
+    }
+  };
 
   useEffect(() => {
     const fetchProperties = async () => {
       setLoading(true);
       try {
-        const querySnapshot = await getDocs(collection(db, "properties"));
-        const propertyList: Property[] = querySnapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: data.propertyId || doc.id,
-            title: data.title || "Untitled Property",
-            address: data.address || "-",
-            price: data.price || 0,
-            type: data.propertyType || "-",
-            status: data.status || "pending",
-            image1: data.image1 || "",
-            agentUID: data.agentUID || "",
-            agentId: data.agentId || "",
-          };
-        });
+        // Always fetch all properties except rejected ones
+        const q = query(
+          collection(db, "properties"),
+          where("status", "!=", "rejected"),
+        );
+        const querySnapshot = await getDocs(q);
+        const propertyList: Property[] = querySnapshot.docs
+          .map((doc) => {
+            const data = doc.data();
+            return {
+              id: data.propertyId || doc.id,
+              title: data.title || "Untitled Property",
+              address: data.address || "-",
+              price: data.price || 0,
+              type: data.propertyType || "-",
+              status: data.status || "pending",
+              image1: data.image1 || "",
+              agentUID: data.agentUID || "",
+              agentId: data.agentId || "",
+            };
+          })
+          .filter((property) => property.status !== "rejected");
         setProperties(propertyList);
+
+        // Calculate unread counts for each property
+        const unreadCounts: { [key: string]: number } = {};
+        for (const property of propertyList) {
+          try {
+            // Get all chats for this property and current agent
+            const currentUser = auth.currentUser;
+            if (!currentUser) continue;
+            const chatsQuery = query(
+              collection(db, "chats"),
+              where("propertyId", "==", property.id),
+              where("agentUID", "==", currentUser.uid),
+            );
+            const chatsSnapshot = await getDocs(chatsQuery);
+
+            let totalUnread = 0;
+            for (const chatDoc of chatsSnapshot.docs) {
+              // Get all messages in this chat
+              const messagesQuery = query(
+                collection(db, "chats", chatDoc.id, "messages"),
+                where("moderationStatus", "==", "approved"),
+              );
+              const messagesSnapshot = await getDocs(messagesQuery);
+
+              // Count unread messages
+              const unreadInChat = messagesSnapshot.docs.filter((doc) => {
+                const messageData = doc.data();
+                const readBy = messageData.readBy || [];
+                return !readBy.includes(currentUser.uid);
+              }).length;
+
+              totalUnread += unreadInChat;
+            }
+
+            unreadCounts[property.id] = totalUnread;
+          } catch (error) {
+            unreadCounts[property.id] = 0;
+          }
+        }
+        setPropertyUnreadCounts(unreadCounts);
       } catch (error) {
         console.error("Error fetching properties:", error);
       } finally {
@@ -351,6 +649,76 @@ export default function AgentPropertyList() {
     };
     fetchProperties();
   }, []);
+
+  // Real-time listener for new messages to update unread counts
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    if (!currentUser || properties.length === 0) return;
+
+    console.log("Setting up real-time message listener for unread counts");
+
+    // Listen to all chats for this agent
+    const chatsQuery = query(
+      collection(db, "chats"),
+      where("agentUID", "==", currentUser.uid),
+    );
+
+    const unsubscribe = onSnapshot(
+      chatsQuery,
+      async (chatsSnapshot) => {
+        console.log("Real-time chat update received, updating unread counts");
+
+        // Recalculate unread counts for all properties
+        const newUnreadCounts: { [key: string]: number } = {};
+
+        for (const property of properties) {
+          try {
+            // Get all chats for this property and current agent
+            const propertyChatsQuery = query(
+              collection(db, "chats"),
+              where("propertyId", "==", property.id),
+              where("agentUID", "==", currentUser.uid),
+            );
+            const propertyChatsSnapshot = await getDocs(propertyChatsQuery);
+
+            let totalUnread = 0;
+            for (const chatDoc of propertyChatsSnapshot.docs) {
+              // Get all messages in this chat
+              const messagesQuery = query(
+                collection(db, "chats", chatDoc.id, "messages"),
+                where("moderationStatus", "==", "approved"),
+              );
+              const messagesSnapshot = await getDocs(messagesQuery);
+
+              // Count unread messages
+              const unreadInChat = messagesSnapshot.docs.filter((doc) => {
+                const messageData = doc.data();
+                const readBy = messageData.readBy || [];
+                return !readBy.includes(currentUser.uid);
+              }).length;
+
+              totalUnread += unreadInChat;
+            }
+
+            newUnreadCounts[property.id] = totalUnread;
+          } catch (error) {
+            console.error(
+              `Error calculating unread count for property ${property.id}:`,
+              error,
+            );
+            newUnreadCounts[property.id] = 0;
+          }
+        }
+
+        setPropertyUnreadCounts(newUnreadCounts);
+      },
+      (error) => {
+        console.error("Error in real-time unread count listener:", error);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [properties]);
 
   return (
     <>
@@ -448,18 +816,28 @@ export default function AgentPropertyList() {
                           <button
                             className="relative flex items-center justify-center rounded-full bg-gray-200 p-2 hover:bg-blue-100 dark:bg-gray-700 dark:hover:bg-blue-900"
                             title="View User Chats"
-                            onClick={() => setShowUserList(property.id)}
+                            onClick={() => {
+                              setShowUserList(property.id);
+                              // Refresh unread count when opening chat modal
+                              refreshUnreadCount(property.id);
+                            }}
                           >
                             <FaComments className="h-5 w-5 text-blue-600" />
-                            {/* Notification badge logic: if any user chat for this property has unread messages, show red dot */}
-                            {/* This will be implemented with state, for now just placeholder */}
-                            {/* <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-600"></span> */}
+                            {/* Show unread count badge if there are unread messages */}
+                            {propertyUnreadCounts[property.id] > 0 && (
+                              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-medium text-white">
+                                {propertyUnreadCounts[property.id] > 99
+                                  ? "99+"
+                                  : propertyUnreadCounts[property.id]}
+                              </span>
+                            )}
                           </button>
                           {showUserList === property.id && (
                             <ChatUserListModal
                               propertyId={property.id}
                               agentUID={property.agentUID || ""}
                               onClose={() => setShowUserList(null)}
+                              refreshUnreadCount={refreshUnreadCount}
                             />
                           )}
                         </div>

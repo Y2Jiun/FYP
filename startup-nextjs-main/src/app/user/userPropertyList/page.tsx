@@ -36,6 +36,7 @@ interface Property {
   image1?: string;
   agentId?: string;
   agentUID?: string;
+  ownerId?: string; // Added ownerId to distinguish user's own properties
 }
 
 function getStatusColor(status: string) {
@@ -100,16 +101,17 @@ export default function UserPropertyList() {
   useEffect(() => {
     if (!userId) return;
     if (!isSearchMode) {
-      fetchUserProperties();
+      fetchAllProperties();
     }
   }, [userId, isSearchMode]);
 
-  const fetchUserProperties = async () => {
+  const fetchAllProperties = async () => {
     setLoading(true);
     try {
+      // Fetch only verified properties for users
       const q = query(
         collection(db, "properties"),
-        where("ownerId", "==", userId),
+        where("status", "==", "verified")
       );
       const querySnapshot = await getDocs(q);
       const propertyList: Property[] = querySnapshot.docs.map((doc) => {
@@ -124,8 +126,11 @@ export default function UserPropertyList() {
           image1: data.image1 || "",
           agentId: data.agentId || "",
           agentUID: data.agentUID || "",
+          ownerId: data.ownerId || "",
         };
       });
+
+      console.log(`Found ${propertyList.length} verified properties`);
       setProperties(propertyList);
     } catch (error) {
       console.error("Error fetching properties:", error);
@@ -260,25 +265,32 @@ export default function UserPropertyList() {
             <div className="mb-8 flex items-center justify-between">
               <div>
                 <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
-                  {isSearchMode ? "Property Search" : "My Properties"}
+                  {isSearchMode ? "Property Search" : "Properties"}
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
                   {isSearchMode
                     ? "Search and discover properties with advanced filters"
-                    : "View and manage your properties"}
+                    : "Browse all available properties"}
                 </p>
+                {!isSearchMode && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Showing {properties.length} properties
+                  </p>
+                )}
               </div>
-              <button
-                onClick={() => {
-                  setIsSearchMode(!isSearchMode);
-                  setSearchProperties([]);
-                  setSearchError("");
-                }}
-                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
-              >
-                {isSearchMode ? <FaEyeSlash /> : <FaEye />}
-                {isSearchMode ? "My Properties" : "Search Properties"}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setIsSearchMode(!isSearchMode);
+                    setSearchProperties([]);
+                    setSearchError("");
+                  }}
+                  className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+                >
+                  {isSearchMode ? <FaEyeSlash /> : <FaEye />}
+                  {isSearchMode ? "Browse Properties" : "Search Properties"}
+                </button>
+              </div>
             </div>
 
             {/* Search Controls (only in search mode) */}
@@ -349,7 +361,7 @@ export default function UserPropertyList() {
             ) : (
               /* Property Grid */
               <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3">
-                {/* User's Properties */}
+                {/* All Properties */}
                 {!isSearchMode &&
                   properties.map((property) => (
                     <div
@@ -364,6 +376,16 @@ export default function UserPropertyList() {
                       >
                         <FlagIcon className="h-6 w-6 text-red-500" />
                       </button>
+
+                      {/* My Property Badge */}
+                      {property.ownerId === userId && (
+                        <div className="absolute top-4 left-4 z-10">
+                          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            My Property
+                          </span>
+                        </div>
+                      )}
+
                       <Link href={`/property/${property.id}`}>
                         <img
                           src={

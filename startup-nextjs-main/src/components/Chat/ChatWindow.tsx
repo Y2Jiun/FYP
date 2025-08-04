@@ -8,6 +8,8 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp,
+  deleteDoc,
+  doc,
 } from "firebase/firestore";
 import { moderateText, moderateImage, ModerationResult } from "@/utils/api";
 import { auth } from "@/lib/firebase";
@@ -21,6 +23,8 @@ type ChatWindowProps = {
 type Message = {
   id: string;
   senderId: string;
+  senderUID: string;
+  senderName: string;
   content: string;
   imageUrl?: string;
   timestamp: any;
@@ -39,6 +43,12 @@ export default function ChatWindow({
   const [error, setError] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(
+    null,
+  );
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -121,6 +131,47 @@ export default function ChatWindow({
     }
   };
 
+  // Show delete confirmation dialog
+  const showDeleteConfirmation = (messageId: string) => {
+    setMessageToDelete(messageId);
+    setShowDeleteConfirm(true);
+  };
+
+  // Delete message function
+  const deleteMessage = async (messageId: string) => {
+    if (!chatId) return;
+
+    setDeletingMessageId(messageId);
+    try {
+      // Delete the message from Firestore
+      await deleteDoc(doc(db, "chats", chatId, "messages", messageId));
+      setError("");
+      setSuccessMessage("Message deleted successfully!");
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (err) {
+      console.error("Error deleting message:", err);
+      setError("Failed to delete message. Please try again.");
+    } finally {
+      setDeletingMessageId(null);
+      setShowDeleteConfirm(false);
+      setMessageToDelete(null);
+    }
+  };
+
+  // Confirm delete action
+  const confirmDelete = () => {
+    if (messageToDelete) {
+      deleteMessage(messageToDelete);
+    }
+  };
+
+  // Cancel delete action
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setMessageToDelete(null);
+  };
+
   // Send message handler
   async function handleSend() {
     setError("");
@@ -182,6 +233,8 @@ export default function ChatWindow({
     try {
       await addDoc(collection(db, "chats", chatId, "messages"), {
         senderId: userId,
+        senderUID: auth.currentUser?.uid || "",
+        senderName: auth.currentUser?.displayName || "User",
         content: input,
         imageUrl: imageUrl,
         timestamp: serverTimestamp(),
@@ -201,15 +254,21 @@ export default function ChatWindow({
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`mb-2 ${msg.senderId === userId ? "text-right" : "text-left"}`}
+            className={`mb-2 ${msg.senderUID === auth.currentUser?.uid ? "text-right" : "text-left"}`}
           >
             <div
               className={`inline-block rounded px-3 py-2 ${
-                msg.senderId === userId
+                msg.senderUID === auth.currentUser?.uid
                   ? "bg-primary text-white"
                   : "bg-gray-200 text-black dark:bg-gray-700 dark:text-white"
               }`}
             >
+              {/* Show sender name for messages from other users */}
+              {msg.senderUID !== auth.currentUser?.uid && (
+                <p className="mb-1 text-xs font-semibold opacity-80">
+                  {msg.senderName || "Unknown User"}
+                </p>
+              )}
               {msg.content && <p className="mb-2">{msg.content}</p>}
               {msg.imageUrl && (
                 <div className="mb-2">
@@ -221,11 +280,23 @@ export default function ChatWindow({
                   />
                 </div>
               )}
-              {msg.moderationStatus !== "approved" && (
-                <span className="ml-2 text-xs text-red-500">
-                  (Blocked: {msg.flaggedReason})
-                </span>
-              )}
+              <div className="mt-1 flex items-center justify-between">
+                {msg.moderationStatus !== "approved" && (
+                  <span className="text-xs text-red-500">
+                    (Blocked: {msg.flaggedReason})
+                  </span>
+                )}
+                {msg.senderUID === auth.currentUser?.uid && (
+                  <button
+                    onClick={() => showDeleteConfirmation(msg.id)}
+                    className="ml-2 text-xs text-red-400 opacity-70 transition-opacity hover:text-red-300 hover:opacity-100"
+                    disabled={deletingMessageId === msg.id}
+                    title="Delete message"
+                  >
+                    {deletingMessageId === msg.id ? "Deleting..." : "🗑️"}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -282,6 +353,40 @@ export default function ChatWindow({
         </button>
       </div>
       {error && <div className="p-2 text-sm text-red-500">{error}</div>}
+      {successMessage && (
+        <div className="p-2 text-sm text-green-500">{successMessage}</div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && messageToDelete && (
+        <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+          <div className="rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              Confirm Deletion
+            </h3>
+            <div className="mt-2 px-7 py-3">
+              <p className="text-sm text-gray-500">
+                Are you sure you want to delete this message? This action cannot
+                be undone.
+              </p>
+            </div>
+            <div className="items-center px-4 py-3">
+              <button
+                onClick={confirmDelete}
+                className="w-full rounded-md bg-red-500 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-600 focus:ring-2 focus:ring-red-500 focus:outline-none"
+              >
+                Delete
+              </button>
+              <button
+                onClick={cancelDelete}
+                className="mt-3 w-full rounded-md bg-gray-200 px-4 py-2 text-base font-medium text-gray-800 shadow-sm hover:bg-gray-300 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -82,12 +82,38 @@ export default function ChatButton({
       }
       console.log("ChatButton: Final userID:", userID);
 
-      // 4. Use sequential chatId based on propertyId
-      const chatId = `CHAT${propertyId.replace("PROP", "")}`;
-      const chatRef = doc(db, "chats", chatId);
-      const chatSnap = await getDoc(chatRef);
-      if (!chatSnap.exists()) {
-        // Create chat document if it doesn't exist
+      // 4. Find existing chat or create new one based on unique combination
+      console.log(
+        "ChatButton: Looking for existing chat with unique combination",
+      );
+      const chatQuery = query(
+        collection(db, "chats"),
+        where("propertyId", "==", propertyId),
+        where("agentUID", "==", agentUID),
+        where("userUID", "==", userUID),
+      );
+      const chatSnapshot = await getDocs(chatQuery);
+
+      let chatId;
+      if (!chatSnapshot.empty) {
+        // Use existing chat
+        chatId = chatSnapshot.docs[0].id;
+        console.log("ChatButton: Found existing chat with ID:", chatId);
+      } else {
+        // Generate next sequential chat ID
+        const allChatsSnapshot = await getDocs(collection(db, "chats"));
+        let maxNum = 0;
+        allChatsSnapshot.docs.forEach((doc) => {
+          const id = doc.id;
+          const match = id.match(/^CHAT(\d+)$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxNum) maxNum = num;
+          }
+        });
+        chatId = `CHAT${String(maxNum + 1).padStart(3, "0")}`;
+        console.log("ChatButton: Creating new chat with ID:", chatId);
+
         const chatData = {
           chatId,
           propertyId,
@@ -98,26 +124,8 @@ export default function ChatButton({
           createdAt: serverTimestamp(),
         };
         console.log("ChatButton: About to create chat with data:", chatData);
-        console.log(
-          "ChatButton: Attempting to create chat document with ID:",
-          chatId,
-        );
-        console.log(
-          "ChatButton: About to call setDoc with data:",
-          JSON.stringify(chatData, null, 2),
-        );
-        console.log("ChatButton: Auth state before setDoc:", {
-          currentUser: auth.currentUser,
-          uid: auth.currentUser?.uid,
-          isAuthenticated: !!auth.currentUser,
-        });
-        await setDoc(chatRef, chatData);
+        await setDoc(doc(db, "chats", chatId), chatData);
         console.log("ChatButton: Chat document created successfully!");
-      } else {
-        console.log(
-          "ChatButton: Chat document already exists, using existing chatId:",
-          chatId,
-        );
       }
       setChatInfo({
         propertyId,
