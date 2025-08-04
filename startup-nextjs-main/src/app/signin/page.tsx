@@ -28,6 +28,9 @@ export default function SigninPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
+    // Clear any pre-filled values on mount
+    setEmail("");
+    setPassword("");
   }, []);
 
   // Add this at the top of the component
@@ -63,7 +66,7 @@ export default function SigninPage() {
   const handleSignin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    setErrorMsg("");
+    setError("");
 
     try {
       // 🔐 Sign in with Firebase
@@ -100,8 +103,8 @@ export default function SigninPage() {
         router.push("/user/user-dashboard");
       }
     } catch (error: any) {
-      console.error("Login failed:", error.message);
-      setErrorMsg("Login failed. Check your email or password.");
+      // Don't log the technical error to console, just show user-friendly message
+      setError("Invalid email or password. Please try again.");
     }
   };
 
@@ -135,7 +138,7 @@ export default function SigninPage() {
         router.push("/user/userprofile");
       }
     } catch (err: any) {
-      setError(err.message || "Google sign-in failed");
+      setError("Google sign-in failed. Please try again.");
     }
   };
 
@@ -191,7 +194,10 @@ export default function SigninPage() {
                   </p>
                   <span className="bg-body-color/50 hidden h-[1px] w-full max-w-[70px] sm:block"></span>
                 </div>
-                <form onSubmit={handleSignin}>
+                <form onSubmit={handleSignin} autoComplete="off">
+                  {/* Hidden dummy fields to trick browser autofill */}
+                  <input type="text" style={{ display: "none" }} />
+                  <input type="password" style={{ display: "none" }} />
                   <div className="mb-8">
                     <label
                       htmlFor="email"
@@ -204,8 +210,12 @@ export default function SigninPage() {
                       name="email"
                       placeholder="Enter your Email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setError(""); // Clear error when user starts typing
+                      }}
                       required
+                      autoComplete="new-password"
                       className="border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none"
                     />
                     {errors.email && (
@@ -227,8 +237,12 @@ export default function SigninPage() {
                         name="password"
                         placeholder="Enter your Password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          setError(""); // Clear error when user starts typing
+                        }}
                         required
+                        autoComplete="new-password"
                         className="border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 pr-10 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none"
                       />
                       <button

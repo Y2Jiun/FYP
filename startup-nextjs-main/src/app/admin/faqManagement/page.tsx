@@ -10,6 +10,9 @@ import {
   doc,
   query,
   orderBy,
+  getDoc,
+  setDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 
 interface FAQ {
@@ -29,6 +32,46 @@ export default function AdminFAQManagementPage() {
   const [editAnswer, setEditAnswer] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  // Helper function to create notifications
+  const createNotification = async (
+    agentUID: string,
+    title: string,
+    content: string,
+  ) => {
+    try {
+      // Get next notification ID
+      const counterRef = doc(db, "notificationCounter", "notification");
+      const counterSnap = await getDoc(counterRef);
+      let nextId = 1;
+      if (counterSnap.exists()) {
+        const lastID = counterSnap.data().lastID;
+        if (lastID && /^NID\d+$/.test(lastID)) {
+          nextId = parseInt(lastID.replace("NID", "")) + 1;
+        }
+      }
+      const notifId = `NID${nextId}`;
+      await setDoc(counterRef, { lastID: notifId });
+
+      // Create notification data
+      const notificationData = {
+        NotificationID: notifId,
+        title: title,
+        content: content,
+        type: 0, // 0 = notification
+        audience: 2, // 2 = agent audience
+        createdBy: "admin",
+        createdAt: serverTimestamp(),
+        agentUID: agentUID,
+        readBy: {}, // Start as unread
+      };
+
+      await setDoc(doc(db, "notification", notifId), notificationData);
+      console.log("FAQ notification sent successfully to agent:", agentUID);
+    } catch (notificationError) {
+      console.error("Error creating FAQ notification:", notificationError);
+    }
+  };
 
   // Fetch all FAQs
   const fetchFaqs = async () => {
@@ -50,7 +93,28 @@ export default function AdminFAQManagementPage() {
     setError("");
     setMessage("");
     try {
+      // Get the FAQ data to find the creator
+      const faqDoc = await getDoc(doc(db, "faqs", faqId));
+      if (!faqDoc.exists()) {
+        setError("FAQ not found.");
+        return;
+      }
+
+      const faqData = faqDoc.data();
+      const agentUID = faqData.createdBy;
+
+      // Update FAQ status
       await updateDoc(doc(db, "faqs", faqId), { status: "published" });
+
+      // Send notification to the agent who created the FAQ
+      if (agentUID && agentUID !== "agent") {
+        await createNotification(
+          agentUID,
+          "FAQ Approved",
+          `Your FAQ "${faqData.question}" has been approved and published successfully.`,
+        );
+      }
+
       setMessage("FAQ approved and published.");
       fetchFaqs();
     } catch (err) {
@@ -63,7 +127,29 @@ export default function AdminFAQManagementPage() {
     setError("");
     setMessage("");
     try {
+      // Get the FAQ data to find the creator before deleting
+      const faqDoc = await getDoc(doc(db, "faqs", faqId));
+      if (!faqDoc.exists()) {
+        setError("FAQ not found.");
+        return;
+      }
+      
+      const faqData = faqDoc.data();
+      const agentUID = faqData.createdBy;
+      const question = faqData.question;
+      
+      // Delete FAQ
       await deleteDoc(doc(db, "faqs", faqId));
+      
+      // Send notification to the agent who created the FAQ
+      if (agentUID && agentUID !== "agent") {
+        await createNotification(
+          agentUID,
+          "FAQ Rejected",
+          `Your FAQ "${question}" has been rejected and deleted by admin.`
+        );
+      }
+      
       setMessage("FAQ deleted.");
       fetchFaqs();
     } catch (err) {
@@ -83,10 +169,31 @@ export default function AdminFAQManagementPage() {
     setError("");
     setMessage("");
     try {
+      // Get the FAQ data to find the creator
+      const faqDoc = await getDoc(doc(db, "faqs", editing.faqId));
+      if (!faqDoc.exists()) {
+        setError("FAQ not found.");
+        return;
+      }
+      
+      const faqData = faqDoc.data();
+      const agentUID = faqData.createdBy;
+      
+      // Update FAQ
       await updateDoc(doc(db, "faqs", editing.faqId), {
         question: editQuestion,
         answer: editAnswer,
       });
+      
+      // Send notification to the agent who created the FAQ
+      if (agentUID && agentUID !== "agent") {
+        await createNotification(
+          agentUID,
+          "FAQ Edited",
+          `Your FAQ "${editQuestion}" has been edited by admin.`
+        );
+      }
+      
       setMessage("FAQ updated.");
       setEditing(null);
       fetchFaqs();

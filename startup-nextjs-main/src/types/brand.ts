@@ -2,6 +2,7 @@ export type Brand = {
   id: number;
   name: string;
   href: string;
-  image: string;
+  image?: string;
   imageLight?: string;
+  logo?: React.ReactNode;
 };

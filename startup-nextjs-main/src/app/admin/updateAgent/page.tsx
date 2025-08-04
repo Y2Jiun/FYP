@@ -1,7 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  addDoc,
+  query,
+  where,
+  serverTimestamp,
+  getDoc,
+  setDoc,
+} from "firebase/firestore";
 import { FiSearch, FiX } from "react-icons/fi";
 import AdminHeader from "@/components/Admin/AdminHeader";
 
@@ -60,28 +71,188 @@ export default function UpdateAgentPage() {
   const handleApprove = async (userId: string) => {
     try {
       const userRef = doc(db, "users", userId);
+      const userData = users.find((user) => user.id === userId);
+
+      if (!userData) throw new Error("User data not found");
+
+      console.log("Approving user:", userId, "User data:", userData);
+
+      // Update user role and clear agent request
       await updateDoc(userRef, { roles: 2, agentRequest: 0 });
+      console.log("Updated user roles to 2 and agentRequest to 0");
+
+      // Try to update agent request status (optional - might not exist)
+      try {
+        const agentRequestsQuery = query(
+          collection(db, "agentRequests"),
+          where("userID", "==", userId),
+        );
+        const agentRequestsSnapshot = await getDocs(agentRequestsQuery);
+        if (!agentRequestsSnapshot.empty) {
+          const requestDoc = agentRequestsSnapshot.docs[0];
+          await updateDoc(doc(db, "agentRequests", requestDoc.id), {
+            status: "approved",
+            adminUID: "ADMIN001",
+            adminID: "ADMIN001",
+            responseDate: serverTimestamp(),
+            responseMessage:
+              "Your agent request has been approved! You can now access agent features.",
+          });
+          console.log("Updated agent request status to approved");
+        } else {
+          console.log("No agent request document found for user:", userId);
+        }
+      } catch (agentRequestError) {
+        console.log("Agent request update failed (optional):", agentRequestError);
+        // Continue with notification creation even if agent request update fails
+      }
+
+      // Create notification for user
+      try {
+        const counterRef = doc(db, "notificationCounter", "notification");
+        const counterSnap = await getDoc(counterRef);
+        let nextId = 1;
+        if (counterSnap.exists()) {
+          const lastID = counterSnap.data().lastID;
+          if (lastID && /^NID\d+$/.test(lastID)) {
+            nextId = parseInt(lastID.replace("NID", "")) + 1;
+          }
+        }
+        const notifId = `NID${nextId}`;
+        await setDoc(counterRef, { lastID: notifId });
+        console.log("Updated notification counter, next ID:", notifId);
+
+        // Ensure firebaseUID exists, fallback to userId if not
+        const userUID = userData.firebaseUID || userId;
+
+        const notificationData = {
+          NotificationID: notifId,
+          title: "Agent Request Approved",
+          content:
+            "Congratulations! Your agent request has been approved. You can now access agent features and list properties.",
+          type: 0, // 0 = notification
+          audience: 3, // 3 = user audience
+          createdBy: "admin",
+          createdAt: serverTimestamp(),
+          agentId: "",
+          agentUID: "",
+          propertyId: "",
+          readBy: {
+            [userUID]: true,
+            [userId]: true,
+          },
+        };
+
+        await setDoc(doc(db, "notification", notifId), notificationData);
+        console.log("Created notification successfully");
+      } catch (notificationError) {
+        console.error("Notification creation failed:", notificationError);
+        throw new Error(`Notification creation failed: ${notificationError.message}`);
+      }
+
+      // Remove from UI
       setUsers((prev) => prev.filter((user) => user.id !== userId));
       setFilteredUsers((prev) => prev.filter((user) => user.id !== userId));
       setNotification("User has been approved and is now an agent.");
       setTimeout(() => setNotification(""), 3000);
     } catch (err) {
-      setNotification("Failed to update user roles");
-      setTimeout(() => setNotification(""), 3000);
+      console.error("Error in handleApprove:", err);
+      setNotification(`Failed to update user roles: ${err.message}`);
+      setTimeout(() => setNotification(""), 5000);
     }
   };
 
   const handleReject = async (userId: string) => {
     try {
       const userRef = doc(db, "users", userId);
+      const userData = users.find((user) => user.id === userId);
+
+      if (!userData) throw new Error("User data not found");
+
+      console.log("Rejecting user:", userId, "User data:", userData);
+
+      // Update user agent request status
       await updateDoc(userRef, { agentRequest: 0 });
+      console.log("Updated user agentRequest to 0");
+
+      // Try to update agent request status (optional - might not exist)
+      try {
+        const agentRequestsQuery = query(
+          collection(db, "agentRequests"),
+          where("userID", "==", userId),
+        );
+        const agentRequestsSnapshot = await getDocs(agentRequestsQuery);
+        if (!agentRequestsSnapshot.empty) {
+          const requestDoc = agentRequestsSnapshot.docs[0];
+          await updateDoc(doc(db, "agentRequests", requestDoc.id), {
+            status: "rejected",
+            adminUID: "ADMIN001",
+            adminID: "ADMIN001",
+            responseDate: serverTimestamp(),
+            responseMessage:
+              "Your agent request has been rejected. You can apply again in the future.",
+          });
+          console.log("Updated agent request status to rejected");
+        } else {
+          console.log("No agent request document found for user:", userId);
+        }
+      } catch (agentRequestError) {
+        console.log("Agent request update failed (optional):", agentRequestError);
+        // Continue with notification creation even if agent request update fails
+      }
+
+      // Create notification for user
+      try {
+        const counterRef = doc(db, "notificationCounter", "notification");
+        const counterSnap = await getDoc(counterRef);
+        let nextId = 1;
+        if (counterSnap.exists()) {
+          const lastID = counterSnap.data().lastID;
+          if (lastID && /^NID\d+$/.test(lastID)) {
+            nextId = parseInt(lastID.replace("NID", "")) + 1;
+          }
+        }
+        const notifId = `NID${nextId}`;
+        await setDoc(counterRef, { lastID: notifId });
+        console.log("Updated notification counter, next ID:", notifId);
+
+        // Ensure firebaseUID exists, fallback to userId if not
+        const userUID = userData.firebaseUID || userId;
+
+        const notificationData = {
+          NotificationID: notifId,
+          title: "Agent Request Rejected",
+          content:
+            "Your agent request has been rejected. You can apply again in the future if you meet the requirements.",
+          type: 0, // 0 = notification
+          audience: 3, // 3 = user audience
+          createdBy: "admin",
+          createdAt: serverTimestamp(),
+          agentId: "",
+          agentUID: "",
+          propertyId: "",
+          readBy: {
+            [userUID]: true,
+            [userId]: true,
+          },
+        };
+
+        await setDoc(doc(db, "notification", notifId), notificationData);
+        console.log("Created notification successfully");
+      } catch (notificationError) {
+        console.error("Notification creation failed:", notificationError);
+        throw new Error(`Notification creation failed: ${notificationError.message}`);
+      }
+
+      // Remove from UI
       setUsers((prev) => prev.filter((user) => user.id !== userId));
       setFilteredUsers((prev) => prev.filter((user) => user.id !== userId));
       setNotification("User's agent request has been rejected.");
       setTimeout(() => setNotification(""), 3000);
     } catch (err) {
-      setNotification("Failed to reject agent request");
-      setTimeout(() => setNotification(""), 3000);
+      console.error("Error in handleReject:", err);
+      setNotification(`Failed to reject agent request: ${err.message}`);
+      setTimeout(() => setNotification(""), 5000);
     }
   };
 

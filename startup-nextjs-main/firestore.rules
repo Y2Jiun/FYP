@@ -14,6 +14,9 @@ service cloud.firestore {
     match /notificationCounter/{document=**} {
       allow read, write: if true;
     }
+    match /agentRequests/{document=**} {
+      allow read, write: if true;
+    }
     // Property Verification Collections
     match /properties/{document=**} {
       allow read, write: if true;

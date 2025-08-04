@@ -578,12 +578,46 @@ export default function AgentPropertyList() {
     const fetchProperties = async () => {
       setLoading(true);
       try {
-        // Always fetch all properties except rejected ones
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          console.log("No current user found");
+          setProperties([]);
+          setLoading(false);
+          return;
+        }
+
+        console.log("Fetching properties for agent:", currentUser.uid);
+
+        // Get current agent's user data to find their agentId
+        const userQuery = query(
+          collection(db, "users"),
+          where("firebaseUID", "==", currentUser.uid),
+        );
+        const userSnapshot = await getDocs(userQuery);
+
+        if (userSnapshot.empty) {
+          console.log("Agent user data not found");
+          setProperties([]);
+          setLoading(false);
+          return;
+        }
+
+        const userData = userSnapshot.docs[0].data();
+        const agentId = userData.userID || userSnapshot.docs[0].id;
+
+        console.log("Agent ID:", agentId);
+        console.log("Agent UID:", currentUser.uid);
+
+        // Fetch only properties that belong to this agent
         const q = query(
           collection(db, "properties"),
+          where("agentId", "==", agentId),
           where("status", "!=", "rejected"),
         );
         const querySnapshot = await getDocs(q);
+
+        console.log("Found properties for agent:", querySnapshot.docs.length);
+
         const propertyList: Property[] = querySnapshot.docs
           .map((doc) => {
             const data = doc.data();

@@ -5,6 +5,7 @@ import {
   HiOutlineBell,
   HiSpeakerphone,
   HiExclamationCircle,
+  HiTrash,
 } from "react-icons/hi";
 import { db } from "@/lib/firebase";
 import {
@@ -15,6 +16,7 @@ import {
   orderBy,
   doc,
   updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
 
 export default function AgentNotificationPage() {
@@ -22,6 +24,10 @@ export default function AgentNotificationPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [userId, setUserId] = useState("");
   const [firebaseUID, setFirebaseUID] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [notificationToDelete, setNotificationToDelete] = useState(null);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchUserInfoAndNotifications = async () => {
@@ -69,6 +75,38 @@ export default function AgentNotificationPage() {
     fetchUserInfoAndNotifications();
   }, []);
 
+  // Handle delete confirmation
+  const handleDeleteClick = (notification) => {
+    setNotificationToDelete(notification);
+    setShowDeleteConfirm(true);
+  };
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (!notificationToDelete) return;
+
+    try {
+      await deleteDoc(doc(db, "notification", notificationToDelete.id));
+      setNotifications((prev) =>
+        prev.filter((n) => n.id !== notificationToDelete.id),
+      );
+      setMessage("Notification deleted successfully!");
+      setTimeout(() => setMessage(""), 3000);
+    } catch (err) {
+      setError("Failed to delete notification. Please try again.");
+      setTimeout(() => setError(""), 5000);
+    } finally {
+      setShowDeleteConfirm(false);
+      setNotificationToDelete(null);
+    }
+  };
+
+  // Handle delete cancellation
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+    setNotificationToDelete(null);
+  };
+
   return (
     <>
       <AgentHeader />
@@ -85,6 +123,18 @@ export default function AgentNotificationPage() {
               Stay up to date with your property and document activity.
             </p>
           </div>
+
+          {/* Message and Error Display */}
+          {message && (
+            <div className="mb-4 rounded-lg border border-green-400 bg-green-100 px-4 py-3 text-green-700 dark:border-green-400 dark:bg-green-900/20 dark:text-green-400">
+              {message}
+            </div>
+          )}
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-400 bg-red-100 px-4 py-3 text-red-700 dark:border-red-400 dark:bg-red-900/20 dark:text-red-400">
+              {error}
+            </div>
+          )}
           <div className="space-y-4">
             {notifications.length === 0 ? (
               <div className="rounded-lg border border-gray-300 bg-gray-100 p-6 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
@@ -108,29 +158,38 @@ export default function AgentNotificationPage() {
                     )}
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="font-semibold text-gray-900 dark:text-white">
-                        {notif.title}
-                      </div>
-                      <span
-                        className={`rounded px-2 py-1 text-xs font-bold ${
-                          notif.type === 3
-                            ? "bg-red-500/20 text-red-300"
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="font-semibold text-gray-900 dark:text-white">
+                          {notif.title}
+                        </div>
+                        <span
+                          className={`rounded px-2 py-1 text-xs font-bold ${
+                            notif.type === 3
+                              ? "bg-red-500/20 text-red-300"
+                              : notif.type === 2
+                                ? "bg-yellow-500/20 text-yellow-300"
+                                : notif.type === 1
+                                  ? "bg-purple-500/20 text-purple-300"
+                                  : "bg-blue-500/20 text-blue-300"
+                          }`}
+                        >
+                          {notif.type === 3
+                            ? "Warning"
                             : notif.type === 2
-                              ? "bg-yellow-500/20 text-yellow-300"
+                              ? "Alert"
                               : notif.type === 1
-                                ? "bg-purple-500/20 text-purple-300"
-                                : "bg-blue-500/20 text-blue-300"
-                        }`}
+                                ? "Announcement"
+                                : "Notification"}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteClick(notif)}
+                        className="text-gray-400 transition-colors duration-200 hover:text-red-500"
+                        title="Delete notification"
                       >
-                        {notif.type === 3
-                          ? "Warning"
-                          : notif.type === 2
-                            ? "Alert"
-                            : notif.type === 1
-                              ? "Announcement"
-                              : "Notification"}
-                      </span>
+                        <HiTrash className="h-5 w-5" />
+                      </button>
                     </div>
                     <div className="mt-1 text-sm text-gray-700 dark:text-gray-300">
                       {notif.content}
@@ -149,6 +208,35 @@ export default function AgentNotificationPage() {
               ))
             )}
           </div>
+
+          {/* Delete Confirmation Modal */}
+          {showDeleteConfirm && (
+            <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+              <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 dark:bg-gray-800">
+                <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+                  Delete Notification
+                </h3>
+                <p className="mb-6 text-gray-700 dark:text-gray-300">
+                  Are you sure you want to delete this notification? This action
+                  cannot be undone.
+                </p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={handleDeleteCancel}
+                    className="px-4 py-2 text-gray-600 transition-colors duration-200 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteConfirm}
+                    className="rounded bg-red-500 px-4 py-2 text-white transition-colors duration-200 hover:bg-red-600"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

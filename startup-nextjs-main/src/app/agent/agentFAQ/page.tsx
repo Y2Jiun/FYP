@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import AgentHeader from "@/components/Agent/agentHeader";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import {
   collection,
   getDocs,
@@ -64,12 +64,21 @@ export default function AgentFAQPage() {
         setSubmitting(false);
         return;
       }
+
+      // Get current user's UID
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        setError("You must be logged in to submit FAQ suggestions.");
+        setSubmitting(false);
+        return;
+      }
+
       const faqId = await getNextFaqId();
       await setDoc(doc(db, "faqs", faqId), {
         faqId,
         question,
         answer,
-        createdBy: "agent", // Optionally use agent's UID/email
+        createdBy: currentUser.uid, // Use actual agent UID instead of "agent"
         createdAt: Timestamp.now(),
         status: "pending",
       });
@@ -109,7 +118,9 @@ export default function AgentFAQPage() {
                   <div className="text-primary text-lg font-bold">
                     Q: {faq.question}
                   </div>
-                  <div className="mt-2 text-gray-700 dark:text-gray-200">A: {faq.answer}</div>
+                  <div className="mt-2 text-gray-700 dark:text-gray-200">
+                    A: {faq.answer}
+                  </div>
                 </div>
               </li>
             ))}

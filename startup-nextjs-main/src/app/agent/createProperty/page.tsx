@@ -10,6 +10,7 @@ import {
   where,
   addDoc,
   serverTimestamp,
+  getDoc,
 } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import {
@@ -306,6 +307,43 @@ export default function CreatePropertyPage() {
           };
           await setDoc(doc(db, "propertyDocuments", docId), docData);
         }
+      }
+
+      // Create notification for successful property creation
+      try {
+        // Get next notification ID
+        const counterRef = doc(db, "notificationCounter", "notification");
+        const counterSnap = await getDoc(counterRef);
+        let nextId = 1;
+        if (counterSnap.exists()) {
+          const lastID = counterSnap.data().lastID;
+          if (lastID && /^NID\d+$/.test(lastID)) {
+            nextId = parseInt(lastID.replace("NID", "")) + 1;
+          }
+        }
+        const notifId = `NID${nextId}`;
+        await setDoc(counterRef, { lastID: notifId });
+
+        // Create notification data
+        const notificationData = {
+          NotificationID: notifId,
+          title: "Property Created Successfully",
+          content: `Your property "${form.title}" has been created successfully and is now pending verification. Property ID: ${propertyId}`,
+          type: 0, // 0 = notification
+          audience: 2, // 2 = agent audience
+          createdBy: "system",
+          createdAt: serverTimestamp(),
+          agentId: userData.userID || "",
+          agentUID: currentUser.uid,
+          propertyId: propertyId,
+          readBy: {}, // Start as unread so the agent sees the notification badge
+        };
+
+        await setDoc(doc(db, "notification", notifId), notificationData);
+        console.log("Property creation notification sent successfully");
+      } catch (notificationError) {
+        console.error("Error creating notification:", notificationError);
+        // Don't fail the property creation if notification fails
       }
 
       router.push("/agent/agentPropertyList");

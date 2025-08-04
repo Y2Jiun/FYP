@@ -22,47 +22,144 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const router = useRouter();
 
+  // Clear fields on component mount to prevent autofill
+  React.useEffect(() => {
+    setUsername("");
+    setEmail("");
+    setPassword("");
+    setAgree(false);
+  }, []);
+
   const passwordRegex =
     /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{6,}$/;
 
   // Enable checkbox only if all fields are filled
   const canCheck = username && email && password;
 
-  const validate = () => {
+  // Real-time validation functions
+  const validateUsername = (value: string) => {
+    if (!value || value.trim().length < 5) {
+      return "Username must be at least 5 characters.";
+    }
+    return "";
+  };
+
+  const validateEmail = (value: string) => {
+    if (!value) {
+      return "Email is required.";
+    } else if (!value.includes("@") || !value.endsWith(".com")) {
+      return "Email must contain '@' and end with '.com'.";
+    }
+    return "";
+  };
+
+  const validatePassword = (value: string) => {
+    if (!value) {
+      return "Password is required.";
+    } else if (value.length <= 5) {
+      return "Password must be more than 5 characters.";
+    } else if (!/(?=.*[A-Za-z])/.test(value)) {
+      return "Password must include at least one alphabet character.";
+    } else if (!/(?=.*\d)/.test(value)) {
+      return "Password must include at least one numeric character.";
+    } else if (!/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(value)) {
+      return "Password must include at least one symbol.";
+    }
+    return "";
+  };
+
+  // Handle input changes with real-time validation
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setUsername(value);
+    setErrors((prev) => ({
+      ...prev,
+      username: validateUsername(value),
+    }));
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmail(value);
+    setErrors((prev) => ({
+      ...prev,
+      email: validateEmail(value),
+    }));
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPassword(value);
+    setErrors((prev) => ({
+      ...prev,
+      password: validatePassword(value),
+    }));
+  };
+
+  const handleAgreeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setAgree(checked);
+    setErrors((prev) => ({
+      ...prev,
+      agree: checked ? "" : "You must agree to the Terms and Conditions.",
+    }));
+  };
+
+  const getValidationErrors = () => {
     const newErrors: any = {};
-    // Username: required, at least 5 chars
+
+    // Username: must be at least 5 characters
     if (!username || username.trim().length < 5) {
       newErrors.username = "Username must be at least 5 characters.";
     }
-    // Email: required, at least 7 chars, must contain '@' and end with '.com'
+
+    // Email: must contain '@' and '.com'
     if (!email) {
       newErrors.email = "Email is required.";
-    } else if (
-      email.length < 7 ||
-      !email.includes("@") ||
-      !email.endsWith(".com")
-    ) {
-      newErrors.email =
-        "Email must be at least 7 characters, contain '@', and end with '.com'.";
+    } else if (!email.includes("@") || !email.endsWith(".com")) {
+      newErrors.email = "Email must contain '@' and end with '.com'.";
     }
-    // Password: required, must have at least one symbol, one number, and one alphabet
+
+    // Password: must include numeric, alphabet, symbol and be more than 5 characters
     if (!password) {
       newErrors.password = "Password is required.";
-    } else if (!passwordRegex.test(password)) {
+    } else if (password.length <= 5) {
+      newErrors.password = "Password must be more than 5 characters.";
+    } else if (!/(?=.*[A-Za-z])/.test(password)) {
       newErrors.password =
-        "Password must be at least 6 characters and include a number, a letter, and a symbol.";
+        "Password must include at least one alphabet character.";
+    } else if (!/(?=.*\d)/.test(password)) {
+      newErrors.password =
+        "Password must include at least one numeric character.";
+    } else if (!/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(password)) {
+      newErrors.password = "Password must include at least one symbol.";
     }
-    // Terms checkbox
+
+    // Terms checkbox must be ticked
     if (!agree) {
       newErrors.agree = "You must agree to the Terms and Conditions.";
     }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    return newErrors;
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+
+    // Get validation errors using the centralized function
+    const newErrors = getValidationErrors();
+    setErrors(newErrors);
+
+    console.log("Current form values:", { username, email, password, agree });
+    console.log("Validation errors:", newErrors);
+    console.log("Is valid:", Object.keys(newErrors).length === 0);
+
+    // If validation fails, show errors and return
+    if (Object.keys(newErrors).length > 0) {
+      console.log("Validation failed - showing errors");
+      return;
+    }
+
     setSuccessMsg("");
     setError("");
     try {
@@ -162,7 +259,10 @@ export default function SignupPage() {
                   </p>
                   <span className="bg-body-color/50 hidden h-[1px] w-full max-w-[60px] sm:block"></span>
                 </div>
-                <form onSubmit={handleSignup}>
+                <form onSubmit={handleSignup} autoComplete="off">
+                  {/* Hidden dummy fields to trick browser autofill */}
+                  <input type="text" style={{ display: 'none' }} />
+                  <input type="password" style={{ display: 'none' }} />
                   <div className="mb-8">
                     <label
                       htmlFor="username"
@@ -175,9 +275,10 @@ export default function SignupPage() {
                       name="username"
                       placeholder="Enter your username"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      onChange={handleUsernameChange}
                       required
-                      className="border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none"
+                      autoComplete="off"
+                      className={`border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none ${errors.username ? "border-red-500" : ""}`}
                     />
                     {errors.username && (
                       <div className="mt-1 text-sm text-red-500">
@@ -197,9 +298,10 @@ export default function SignupPage() {
                       name="email"
                       placeholder="Enter your Email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={handleEmailChange}
                       required
-                      className="border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none"
+                      autoComplete="off"
+                      className={`border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none ${errors.email ? "border-red-500" : ""}`}
                     />
                     {errors.email && (
                       <div className="mt-1 text-sm text-red-500">
@@ -220,9 +322,10 @@ export default function SignupPage() {
                         name="password"
                         placeholder="Enter your Password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={handlePasswordChange}
                         required
-                        className="border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 pr-10 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none"
+                        autoComplete="new-password"
+                        className={`border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 pr-10 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none ${errors.password ? "border-red-500" : ""}`}
                       />
                       <button
                         type="button"
@@ -295,11 +398,12 @@ export default function SignupPage() {
                           type="checkbox"
                           id="checkboxLabel"
                           checked={agree}
-                          onChange={(e) => setAgree(e.target.checked)}
-                          disabled={!canCheck}
+                          onChange={handleAgreeChange}
                           className="sr-only"
                         />
-                        <div className="box border-body-color/20 mt-1 mr-4 flex h-5 w-5 items-center justify-center rounded-sm border dark:border-white/10">
+                        <div
+                          className={`box border-body-color/20 mt-1 mr-4 flex h-5 w-5 items-center justify-center rounded-sm border dark:border-white/10 ${errors.agree ? "border-red-500" : ""}`}
+                        >
                           {agree && (
                             <svg
                               width="11"
@@ -320,22 +424,34 @@ export default function SignupPage() {
                       </div>
                       <span>
                         By creating account means you agree to the
-                        <Link href="/terms" className="text-primary hover:underline">
+                        <Link
+                          href="/terms"
+                          className="text-primary hover:underline"
+                        >
                           {" "}
                           Terms and Conditions{" "}
                         </Link>
                         , and our
-                        <Link href="/privacy" className="text-primary hover:underline">
+                        <Link
+                          href="/privacy"
+                          className="text-primary hover:underline"
+                        >
                           {" "}
                           Privacy Policy{" "}
                         </Link>
                       </span>
                     </label>
                   </div>
+                  {errors.agree && (
+                    <div className="mb-4 text-sm text-red-500">
+                      {errors.agree}
+                    </div>
+                  )}
                   {/* Show all error messages here */}
                   {error && (
                     <div className="mb-2 text-center text-red-500">{error}</div>
                   )}
+
                   <div className="mb-6">
                     <button
                       type="submit"

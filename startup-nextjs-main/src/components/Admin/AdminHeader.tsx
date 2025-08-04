@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import ThemeToggler from "@/components/Header/ThemeToggler";
 import { useState, useEffect, useRef } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  onSnapshot,
+} from "firebase/firestore";
 
 const adminMenu = [
   { title: "Dashboard", path: "/admin/admin-dashboard" },
@@ -44,6 +50,7 @@ export default function AdminHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profilePic, setProfilePic] = useState("");
   const [dropdown, setDropdown] = useState("");
+  const [notificationCount, setNotificationCount] = useState(0);
   const dropdownTimeout = useRef(null);
 
   useEffect(() => {
@@ -59,6 +66,26 @@ export default function AdminHeader() {
       }
     };
     fetchProfilePic();
+  }, []);
+
+  // Fetch notification count with real-time listener
+  useEffect(() => {
+    const notifQuery = query(
+      collection(db, "notification"),
+      where("audience", "in", [3, "all", "admin"]),
+    );
+
+    const unsubscribe = onSnapshot(
+      notifQuery,
+      (snapshot) => {
+        setNotificationCount(snapshot.size);
+      },
+      (error) => {
+        console.error("Error listening to notifications:", error);
+      },
+    );
+
+    return () => unsubscribe();
   }, []);
 
   const handleSignOut = () => {
@@ -395,7 +422,7 @@ export default function AdminHeader() {
           <ThemeToggler />
           <Link href="/admin/adminNotification">
             <button
-              className="ml-2 flex items-center justify-center rounded-full bg-gray-200 p-2 transition hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+              className="relative ml-2 flex items-center justify-center rounded-full bg-gray-200 p-2 transition hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
               title="Notifications"
             >
               <svg
@@ -412,6 +439,11 @@ export default function AdminHeader() {
                   d="M14.25 17.25v.75a2.25 2.25 0 01-4.5 0v-.75m9-2.25V11a6.75 6.75 0 10-13.5 0v3.99c0 .414-.336.75-.75.75h-.75a.75.75 0 000 1.5h18a.75.75 0 000-1.5h-.75a.75.75 0 01-.75-.75z"
                 />
               </svg>
+              {notificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                  {notificationCount > 99 ? "99+" : notificationCount}
+                </span>
+              )}
             </button>
           </Link>
         </div>
@@ -420,6 +452,20 @@ export default function AdminHeader() {
       {menuOpen && (
         <nav className="absolute top-full left-0 z-50 w-full border-b border-gray-700 bg-white shadow-lg md:hidden dark:bg-[#181c23]">
           <ul className="flex flex-col gap-2 p-4">
+            <li>
+              <Link
+                href="/admin/adminNotification"
+                className="hover:text-primary flex items-center justify-between rounded px-3 py-2 font-medium text-gray-900 transition-colors duration-200 dark:text-white"
+                onClick={() => setMenuOpen(false)}
+              >
+                <span>Notifications</span>
+                {notificationCount > 0 && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                    {notificationCount > 99 ? "99+" : notificationCount}
+                  </span>
+                )}
+              </Link>
+            </li>
             {adminMenu.map((item) =>
               item.submenu ? (
                 <li key={item.title}>
