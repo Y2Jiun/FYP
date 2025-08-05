@@ -13,6 +13,8 @@ import {
   addDoc,
 } from "firebase/firestore";
 import AdminHeader from "@/components/Admin/AdminHeader";
+import DocumentPreviewModal from "@/components/Admin/DocumentPreviewModal";
+import EnhancedVerificationWorkflow from "@/components/Admin/EnhancedVerificationWorkflow";
 import {
   FiSearch,
   FiFilter,
@@ -59,6 +61,7 @@ interface PropertyDocument {
   verifiedAt?: any;
   verificationNotes?: string;
   isAuthentic?: boolean;
+  isRequired?: boolean;
 }
 
 interface VerificationHistory {
@@ -89,6 +92,11 @@ export default function PropertyVerificationPage() {
   const [notification, setNotification] = useState("");
   const [verificationNotes, setVerificationNotes] = useState("");
   const [activeTab, setActiveTab] = useState("properties");
+  const [showDocumentPreview, setShowDocumentPreview] = useState(false);
+  const [selectedDocumentForPreview, setSelectedDocumentForPreview] =
+    useState<PropertyDocument | null>(null);
+  const [documentFilter, setDocumentFilter] = useState("all");
+  const [documentStatusFilter, setDocumentStatusFilter] = useState("all");
 
   useEffect(() => {
     fetchData();
@@ -108,10 +116,13 @@ export default function PropertyVerificationPage() {
       const documentsSnapshot = await getDocs(
         collection(db, "propertyDocuments"),
       );
-      const documentsData = documentsSnapshot.docs.map((doc) => ({
-        documentId: doc.id,
-        ...doc.data(),
-      })) as PropertyDocument[];
+      const documentsData = documentsSnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          documentId: data.documentId || doc.id, // Use the custom documentId field, fallback to Firestore ID
+          ...data,
+        };
+      }) as PropertyDocument[];
 
       // Fetch verification history
       const historySnapshot = await getDocs(
@@ -136,6 +147,7 @@ export default function PropertyVerificationPage() {
   const handleDocumentVerification = async (
     documentId: string,
     status: "verified" | "rejected",
+    notes?: string,
   ) => {
     try {
       const adminId = localStorage.getItem("userID") || "ADMIN001";
@@ -145,7 +157,7 @@ export default function PropertyVerificationPage() {
         body: JSON.stringify({
           documentId: documentId,
           status: status,
-          notes: verificationNotes,
+          notes: notes || verificationNotes,
           adminId: adminId,
         }),
       });
@@ -153,11 +165,36 @@ export default function PropertyVerificationPage() {
       setNotification(`Document ${status} successfully`);
       setVerificationNotes("");
       setSelectedDocument(null);
+      setShowDocumentPreview(false);
+      setSelectedDocumentForPreview(null);
       fetchData();
     } catch (error) {
       console.error("Error updating document:", error);
       setNotification("Error updating document");
     }
+  };
+
+  const handleDocumentSelect = (document: PropertyDocument) => {
+    setSelectedDocumentForPreview(document);
+    setShowDocumentPreview(true);
+  };
+
+  const handleDocumentDownload = (fileUrl: string, fileName: string) => {
+    // Create a temporary link to download the file
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDocumentFilterChange = (filter: string) => {
+    setDocumentFilter(filter);
+  };
+
+  const handleDocumentStatusFilterChange = (status: string) => {
+    setDocumentStatusFilter(status);
   };
 
   const handlePropertyVerification = async (
@@ -414,92 +451,12 @@ export default function PropertyVerificationPage() {
             )}
 
             {activeTab === "documents" && (
-              <div className="overflow-x-auto rounded-lg border border-gray-300 bg-white shadow dark:border-gray-700 dark:bg-gray-900">
-                <table className="min-w-full text-gray-900 dark:text-white">
-                  <thead>
-                    <tr className="border-b border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
-                      <th className="px-6 py-4 text-left font-semibold">
-                        Document ID
-                      </th>
-                      <th className="px-6 py-4 text-left font-semibold">
-                        Property ID
-                      </th>
-                      <th className="px-6 py-4 text-left font-semibold">
-                        Document Type
-                      </th>
-                      <th className="px-6 py-4 text-left font-semibold">
-                        Document Name
-                      </th>
-                      <th className="px-6 py-4 text-left font-semibold">
-                        Uploaded By
-                      </th>
-                      <th className="px-6 py-4 text-left font-semibold">
-                        Status
-                      </th>
-                      <th className="px-6 py-4 text-left font-semibold">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredDocuments.map((document) => (
-                      <tr
-                        key={document.documentId}
-                        className="border-b border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
-                      >
-                        <td className="px-6 py-4">{document.documentId}</td>
-                        <td className="px-6 py-4">{document.propertyId}</td>
-                        <td className="px-6 py-4">{document.documentType}</td>
-                        <td className="px-6 py-4">{document.documentName}</td>
-                        <td className="px-6 py-4">{document.uploadedBy}</td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center gap-1 ${getStatusColor(document.verificationStatus)}`}
-                          >
-                            {getStatusIcon(document.verificationStatus)}
-                            {document.verificationStatus}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2">
-                            <button
-                              className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-500"
-                              onClick={() => setSelectedDocument(document)}
-                            >
-                              <FiEye className="mr-1 inline" />
-                              View
-                            </button>
-                            <button
-                              className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-500"
-                              onClick={() =>
-                                handleDocumentVerification(
-                                  document.documentId,
-                                  "verified",
-                                )
-                              }
-                            >
-                              <FiCheck className="mr-1 inline" />
-                              Verify
-                            </button>
-                            <button
-                              className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-500"
-                              onClick={() =>
-                                handleDocumentVerification(
-                                  document.documentId,
-                                  "rejected",
-                                )
-                              }
-                            >
-                              <FiX className="mr-1 inline" />
-                              Reject
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <EnhancedVerificationWorkflow
+                documents={documents}
+                onDocumentSelect={handleDocumentSelect}
+                onFilterChange={handleDocumentFilterChange}
+                onStatusFilterChange={handleDocumentStatusFilterChange}
+              />
             )}
 
             {activeTab === "history" && (
@@ -653,6 +610,18 @@ export default function PropertyVerificationPage() {
             </div>
           </div>
         )}
+
+        {/* Document Preview Modal */}
+        <DocumentPreviewModal
+          document={selectedDocumentForPreview}
+          isOpen={showDocumentPreview}
+          onClose={() => {
+            setShowDocumentPreview(false);
+            setSelectedDocumentForPreview(null);
+          }}
+          onVerify={handleDocumentVerification}
+          onDownload={handleDocumentDownload}
+        />
       </div>
     </>
   );

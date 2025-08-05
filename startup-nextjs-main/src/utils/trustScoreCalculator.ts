@@ -1,264 +1,288 @@
-import { Property } from "@/types/property";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
-export interface TrustScoreFactors {
-  documentVerification: number; // 0-100
-  imageVerification: number; // 0-100
-  agentVerification: number; // 0-100
-  propertyDetailsVerification: number; // 0-100
-  legalCompliance: number; // 0-100
-  financialTransparency: number; // 0-100
-  neighborhoodData: number; // 0-100
-  marketData: number; // 0-100
+export interface TrustScoreResult {
+  trustScore: number;
+  trustBadge: string;
+  requiredDocuments: number;
+  verifiedDocuments: number;
 }
 
-export interface VerificationBadges {
-  ownership: boolean;
-  legal: boolean;
-  financial: boolean;
-  structural: boolean;
-  agent: boolean;
-  neighborhood: boolean;
-  market: boolean;
-}
+/**
+ * Calculate trust score for a property based on verified documents
+ * @param propertyId - The property ID to calculate trust score for
+ * @returns Promise<TrustScoreResult> - Trust score, badge, and document counts
+ */
+export async function calculateTrustScore(
+  propertyId: string,
+): Promise<TrustScoreResult> {
+  try {
+    // Get all documents for this property
+    const documentsQuery = query(
+      collection(db, "propertyDocuments"),
+      where("propertyId", "==", propertyId),
+    );
 
-export class TrustScoreCalculator {
-  /**
-   * Calculate trust score based on verification factors
-   */
-  static calculateTrustScore(factors: TrustScoreFactors): number {
-    const weights = {
-      documentVerification: 0.25,
-      imageVerification: 0.15,
-      agentVerification: 0.2,
-      propertyDetailsVerification: 0.15,
-      legalCompliance: 0.1,
-      financialTransparency: 0.05,
-      neighborhoodData: 0.05,
-      marketData: 0.05,
-    };
+    const documentsSnapshot = await getDocs(documentsQuery);
 
-    let totalScore = 0;
-    let totalWeight = 0;
+    let requiredDocuments = 0;
+    let verifiedDocuments = 0;
 
-    Object.entries(factors).forEach(([factor, score]) => {
-      const weight = weights[factor as keyof TrustScoreFactors];
-      totalScore += score * weight;
-      totalWeight += weight;
+    // Count required and verified documents
+    documentsSnapshot.forEach((doc) => {
+      const documentData = doc.data();
+
+      // Check if document is required (default to true if field doesn't exist)
+      const isRequired = documentData.isRequired !== false;
+
+      if (isRequired) {
+        requiredDocuments++;
+        console.log(
+          `Required document: ${documentData.documentName} - Status: ${documentData.verificationStatus}`,
+        );
+
+        // Check if document is verified
+        if (documentData.verificationStatus === "verified") {
+          verifiedDocuments++;
+          console.log(`✓ Verified document: ${documentData.documentName}`);
+        } else {
+          console.log(
+            `✗ Pending/Rejected document: ${documentData.documentName} - Status: ${documentData.verificationStatus}`,
+          );
+        }
+      } else {
+        console.log(
+          `Optional document: ${documentData.documentName} - Status: ${documentData.verificationStatus}`,
+        );
+      }
     });
 
-    return Math.round(totalScore / totalWeight);
-  }
+    console.log(`Total required documents: ${requiredDocuments}`);
+    console.log(`Total verified documents: ${verifiedDocuments}`);
 
-  /**
-   * Determine verification level based on trust score
-   */
-  static getVerificationLevel(
-    trustScore: number,
-  ): "BRONZE" | "SILVER" | "GOLD" | "PLATINUM" {
-    if (trustScore >= 90) return "PLATINUM";
-    if (trustScore >= 75) return "GOLD";
-    if (trustScore >= 50) return "SILVER";
-    return "BRONZE";
-  }
+    // Calculate trust score percentage
+    let trustScore = 0;
+    if (requiredDocuments > 0) {
+      trustScore = Math.round((verifiedDocuments / requiredDocuments) * 100);
+    }
 
-  /**
-   * Calculate trust score from property data
-   */
-  static calculateFromProperty(property: Property): {
-    trustScore: number;
-    verificationLevel: "BRONZE" | "SILVER" | "GOLD" | "PLATINUM";
-    badges: VerificationBadges;
-  } {
-    const factors: TrustScoreFactors = {
-      documentVerification: this.calculateDocumentVerification(property),
-      imageVerification: this.calculateImageVerification(property),
-      agentVerification: this.calculateAgentVerification(property),
-      propertyDetailsVerification:
-        this.calculatePropertyDetailsVerification(property),
-      legalCompliance: this.calculateLegalCompliance(property),
-      financialTransparency: this.calculateFinancialTransparency(property),
-      neighborhoodData: this.calculateNeighborhoodData(property),
-      marketData: this.calculateMarketData(property),
-    };
-
-    const trustScore = this.calculateTrustScore(factors);
-    const verificationLevel = this.getVerificationLevel(trustScore);
-    const badges = this.calculateBadges(property);
+    // Assign badge based on trust score
+    let trustBadge = "bronze";
+    if (trustScore >= 90) {
+      trustBadge = "platinum";
+    } else if (trustScore >= 70) {
+      trustBadge = "gold";
+    } else if (trustScore >= 50) {
+      trustBadge = "silver";
+    } else {
+      trustBadge = "bronze";
+    }
 
     return {
       trustScore,
-      verificationLevel,
-      badges,
+      trustBadge,
+      requiredDocuments,
+      verifiedDocuments,
+    };
+  } catch (error) {
+    console.error("Error calculating trust score:", error);
+    // Return default values if calculation fails
+    return {
+      trustScore: 0,
+      trustBadge: "bronze",
+      requiredDocuments: 0,
+      verifiedDocuments: 0,
     };
   }
+}
 
-  /**
-   * Calculate document verification score
-   */
-  private static calculateDocumentVerification(property: Property): number {
-    const verificationStatus = property.verificationStatus;
+/**
+ * Get badge color and icon for display
+ * @param badge - The badge level
+ * @returns Object with color and icon information
+ */
+export function getBadgeInfo(badge: string) {
+  const badgeInfo = {
+    bronze: {
+      color: "bg-amber-600",
+      textColor: "text-amber-600",
+      bgColor: "bg-amber-100",
+      icon: "🥉",
+      label: "Bronze",
+    },
+    silver: {
+      color: "bg-gray-500",
+      textColor: "text-gray-500",
+      bgColor: "bg-gray-100",
+      icon: "🥈",
+      label: "Silver",
+    },
+    gold: {
+      color: "bg-yellow-500",
+      textColor: "text-yellow-500",
+      bgColor: "bg-yellow-100",
+      icon: "🥇",
+      label: "Gold",
+    },
+    platinum: {
+      color: "bg-purple-500",
+      textColor: "text-purple-500",
+      bgColor: "bg-purple-100",
+      icon: "💎",
+      label: "Platinum",
+    },
+  };
 
-    let score = 0;
-    if (verificationStatus.documents === "verified") score += 50;
-    else if (verificationStatus.documents === "pending") score += 25;
+  return badgeInfo[badge as keyof typeof badgeInfo] || badgeInfo.bronze;
+}
 
-    // Additional points for having multiple document types
-    const documentTypes = [
-      "title_deed",
-      "land_certificate",
-      "building_plan",
-      "survey_plan",
-    ];
-    const hasDocuments = documentTypes.length; // This would be calculated from actual documents
-    score += Math.min(hasDocuments * 10, 50); // Max 50 points for document variety
+/**
+ * Get trust score description based on badge
+ * @param badge - The badge level
+ * @returns Description of what the badge means
+ */
+export function getTrustScoreDescription(badge: string): string {
+  const descriptions = {
+    bronze: "Basic verification - Some documents verified",
+    silver: "Good verification - Most documents verified",
+    gold: "Excellent verification - Almost all documents verified",
+    platinum: "Perfect verification - All documents verified",
+  };
 
-    return Math.min(score, 100);
-  }
+  return (
+    descriptions[badge as keyof typeof descriptions] || descriptions.bronze
+  );
+}
 
-  /**
-   * Calculate image verification score
-   */
-  private static calculateImageVerification(property: Property): number {
-    const verificationStatus = property.verificationStatus;
+/**
+ * Debug function to check all documents for a property
+ * @param propertyId - The property ID to check
+ * @returns Promise<void> - Logs detailed information about all documents
+ */
+export async function debugPropertyDocuments(
+  propertyId: string,
+): Promise<void> {
+  try {
+    console.log(`🔍 DEBUGGING DOCUMENTS FOR PROPERTY: ${propertyId}`);
+    console.log("=".repeat(50));
 
-    let score = 0;
-    if (verificationStatus.images === "verified") score += 60;
-    else if (verificationStatus.images === "pending") score += 30;
+    // Get all documents for this property
+    const documentsQuery = query(
+      collection(db, "propertyDocuments"),
+      where("propertyId", "==", propertyId),
+    );
 
-    // Additional points for having multiple image types
-    const imageTypes = ["exterior", "interior", "floor_plan", "location"];
-    const hasImages = imageTypes.length; // This would be calculated from actual images
-    score += Math.min(hasImages * 10, 40); // Max 40 points for image variety
+    const documentsSnapshot = await getDocs(documentsQuery);
 
-    return Math.min(score, 100);
-  }
-
-  /**
-   * Calculate agent verification score
-   */
-  private static calculateAgentVerification(property: Property): number {
-    let score = 0;
-
-    if (property.agentVerified) score += 60;
-    if (property.agentTrustScore)
-      score += Math.min(property.agentTrustScore, 40);
-
-    return Math.min(score, 100);
-  }
-
-  /**
-   * Calculate property details verification score
-   */
-  private static calculatePropertyDetailsVerification(
-    property: Property,
-  ): number {
-    const verificationStatus = property.verificationStatus;
-
-    let score = 0;
-    if (verificationStatus.details === "verified") score += 60;
-    else if (verificationStatus.details === "pending") score += 30;
-
-    // Additional points for completeness
-    const requiredFields = [
-      "title",
-      "description",
-      "price",
-      "location",
-      "propertyType",
-      "size",
-    ];
-    const hasRequiredFields = requiredFields.filter(
-      (field) =>
-        property[field as keyof Property] !== undefined &&
-        property[field as keyof Property] !== "",
-    ).length;
-
-    score += Math.min((hasRequiredFields / requiredFields.length) * 40, 40);
-
-    return Math.min(score, 100);
-  }
-
-  /**
-   * Calculate legal compliance score
-   */
-  private static calculateLegalCompliance(property: Property): number {
-    // This would be calculated based on legal document verification
-    // For now, return a base score
-    return 70; // Placeholder
-  }
-
-  /**
-   * Calculate financial transparency score
-   */
-  private static calculateFinancialTransparency(property: Property): number {
-    // This would be calculated based on financial document verification
-    // For now, return a base score
-    return 60; // Placeholder
-  }
-
-  /**
-   * Calculate neighborhood data score
-   */
-  private static calculateNeighborhoodData(property: Property): number {
-    let score = 0;
-
-    if (property.neighborhood) score += 30;
-    if (property.zipCode) score += 20;
-    if (property.location?.coordinates) score += 25;
-
-    // Additional points for having neighborhood information
-    // This would be calculated from actual neighborhood data
-    score += 25; // Placeholder for neighborhood data
-
-    return Math.min(score, 100);
-  }
-
-  /**
-   * Calculate market data score
-   */
-  private static calculateMarketData(property: Property): number {
-    let score = 0;
-
-    if (property.marketData) {
-      if (property.marketData.averagePrice) score += 25;
-      if (property.marketData.priceRanking) score += 25;
-      if (property.marketData.marketTrend) score += 25;
-      if (property.marketData.daysOnMarket) score += 25;
+    if (documentsSnapshot.empty) {
+      console.log("❌ No documents found for this property");
+      return;
     }
 
-    return Math.min(score, 100);
+    console.log(
+      `📄 Found ${documentsSnapshot.size} documents for property ${propertyId}:`,
+    );
+    console.log("");
+
+    let totalDocuments = 0;
+    let requiredDocuments = 0;
+    let verifiedDocuments = 0;
+    let pendingDocuments = 0;
+    let rejectedDocuments = 0;
+    let optionalDocuments = 0;
+
+    documentsSnapshot.forEach((doc, index) => {
+      const documentData = doc.data();
+      totalDocuments++;
+
+      console.log(`📋 Document ${index + 1}:`);
+      console.log(`   ID: ${documentData.documentId || doc.id}`);
+      console.log(`   Name: ${documentData.documentName}`);
+      console.log(`   Type: ${documentData.documentType}`);
+      console.log(`   Property ID: ${documentData.propertyId}`);
+      console.log(`   Required: ${documentData.isRequired}`);
+      console.log(`   Status: ${documentData.verificationStatus}`);
+      console.log(`   Uploaded By: ${documentData.uploadedBy}`);
+      console.log("");
+
+      // Count by status
+      if (documentData.isRequired !== false) {
+        requiredDocuments++;
+        if (documentData.verificationStatus === "verified") {
+          verifiedDocuments++;
+        } else if (documentData.verificationStatus === "pending") {
+          pendingDocuments++;
+        } else if (documentData.verificationStatus === "rejected") {
+          rejectedDocuments++;
+        }
+      } else {
+        optionalDocuments++;
+      }
+    });
+
+    console.log("📊 SUMMARY:");
+    console.log(`   Total Documents: ${totalDocuments}`);
+    console.log(`   Required Documents: ${requiredDocuments}`);
+    console.log(`   Optional Documents: ${optionalDocuments}`);
+    console.log(`   Verified: ${verifiedDocuments}`);
+    console.log(`   Pending: ${pendingDocuments}`);
+    console.log(`   Rejected: ${rejectedDocuments}`);
+
+    if (requiredDocuments > 0) {
+      const trustScore = Math.round(
+        (verifiedDocuments / requiredDocuments) * 100,
+      );
+      console.log(
+        `   Trust Score: ${trustScore}% (${verifiedDocuments}/${requiredDocuments})`,
+      );
+
+      let badge = "bronze";
+      if (trustScore >= 90) badge = "platinum";
+      else if (trustScore >= 70) badge = "gold";
+      else if (trustScore >= 50) badge = "silver";
+
+      console.log(`   Badge: ${badge.toUpperCase()}`);
+    } else {
+      console.log("   Trust Score: 0% (no required documents)");
+    }
+
+    console.log("=".repeat(50));
+  } catch (error) {
+    console.error("Error debugging property documents:", error);
   }
+}
 
-  /**
-   * Calculate verification badges
-   */
-  private static calculateBadges(property: Property): VerificationBadges {
-    return {
-      ownership: property.verificationStatus.documents === "verified",
-      legal: property.verificationStatus.documents === "verified", // Simplified
-      financial: property.verificationStatus.documents === "verified", // Simplified
-      structural: property.verificationStatus.images === "verified",
-      agent: property.agentVerified || false,
-      neighborhood: !!property.neighborhood,
-      market: !!property.marketData,
-    };
-  }
+/**
+ * Update property's trust score in Firestore
+ * @param propertyId - The property ID to update
+ * @returns Promise<boolean> - Success status
+ */
+export async function updatePropertyTrustScore(
+  propertyId: string,
+): Promise<boolean> {
+  try {
+    // Calculate trust score
+    const trustScoreResult = await calculateTrustScore(propertyId);
 
-  /**
-   * Update property with calculated trust score and verification level
-   */
-  static async updatePropertyTrustScore(
-    propertyId: string,
-    property: Property,
-  ): Promise<{
-    trustScore: number;
-    verificationLevel: "BRONZE" | "SILVER" | "GOLD" | "PLATINUM";
-    badges: VerificationBadges;
-  }> {
-    const result = this.calculateFromProperty(property);
+    // Update property document with new trust score
+    const { doc, updateDoc } = await import("firebase/firestore");
+    const propertyRef = doc(db, "properties", propertyId);
 
-    // Here you would update the property in Firestore
-    // For now, just return the calculated values
-    return result;
+    await updateDoc(propertyRef, {
+      trustScore: trustScoreResult.trustScore,
+      trustBadge: trustScoreResult.trustBadge,
+      requiredDocuments: trustScoreResult.requiredDocuments,
+      verifiedDocuments: trustScoreResult.verifiedDocuments,
+      trustScoreLastUpdated: new Date(),
+    });
+
+    console.log(
+      `Trust score updated for property ${propertyId}:`,
+      trustScoreResult,
+    );
+    return true;
+  } catch (error) {
+    console.error("Error updating property trust score:", error);
+    return false;
   }
 }

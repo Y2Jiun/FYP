@@ -1,8 +1,17 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AgentHeader from "@/components/Agent/agentHeader";
+import { db, auth } from "@/lib/firebase";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  serverTimestamp,
+} from "firebase/firestore";
 
 interface UploadedFile {
   id: string;
@@ -13,9 +22,17 @@ interface UploadedFile {
   progress: number;
 }
 
+interface Property {
+  id: string;
+  title: string;
+  address: string;
+}
+
 export default function AgentDocumentUpload() {
   const [selectedFiles, setSelectedFiles] = useState<UploadedFile[]>([]);
   const [documentType, setDocumentType] = useState("");
+  const [selectedProperty, setSelectedProperty] = useState("");
+  const [properties, setProperties] = useState<Property[]>([]);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,6 +48,51 @@ export default function AgentDocumentUpload() {
     "Property Photos",
     "Other",
   ];
+
+  // Fetch agent's properties
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+
+        // Get current agent's user data to find their agentId
+        const userQuery = query(
+          collection(db, "users"),
+          where("firebaseUID", "==", currentUser.uid),
+        );
+        const userSnapshot = await getDocs(userQuery);
+
+        if (userSnapshot.empty) return;
+
+        const userData = userSnapshot.docs[0].data();
+        const agentId = userData.userID || userSnapshot.docs[0].id;
+
+        // Fetch properties for this agent
+        const propertiesQuery = query(
+          collection(db, "properties"),
+          where("agentId", "==", agentId),
+          where("status", "!=", "rejected"),
+        );
+        const propertiesSnapshot = await getDocs(propertiesQuery);
+
+        const propertyList: Property[] = propertiesSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: data.propertyId || doc.id,
+            title: data.title || "Untitled Property",
+            address: data.address || "-",
+          };
+        });
+
+        setProperties(propertyList);
+      } catch (error) {
+        console.error("Error fetching properties:", error);
+      }
+    };
+
+    fetchProperties();
+  }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -50,6 +112,10 @@ export default function AgentDocumentUpload() {
       setMessage("Please select a document type");
       return;
     }
+    if (!selectedProperty) {
+      setMessage("Please select a property");
+      return;
+    }
     if (selectedFiles.length === 0) {
       setMessage("Please select files to upload");
       return;
@@ -59,35 +125,162 @@ export default function AgentDocumentUpload() {
     setMessage("");
 
     try {
-      // Simulate upload process
+      console.log("Starting upload process...");
+
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        setMessage("Please log in to upload documents");
+        setUploading(false);
+        return;
+      }
+
+      console.log("Current user:", currentUser.uid);
+
+      // Get agent data
+      const userQuery = query(
+        collection(db, "users"),
+        where("firebaseUID", "==", currentUser.uid),
+      );
+      const userSnapshot = await getDocs(userQuery);
+
+      if (userSnapshot.empty) {
+        setMessage("Agent data not found");
+        setUploading(false);
+        return;
+      }
+
+      const userData = userSnapshot.docs[0].data();
+      const agentId = userData.userID || userSnapshot.docs[0].id;
+
+      console.log("Agent ID:", agentId);
+      console.log("Selected Property:", selectedProperty);
+      console.log("Document Type:", documentType);
+
+      // Upload each file
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
+        console.log(
+          `Uploading file ${i + 1}/${selectedFiles.length}:`,
+          file.name,
+        );
 
-        // Simulate progress
-        for (let progress = 0; progress <= 100; progress += 10) {
+        // Update progress
+        setSelectedFiles((prev) =>
+          prev.map((f) =>
+            f.id === file.id ? { ...f, progress: 50, status: "uploading" } : f,
+          ),
+        );
+
+        // Generate next document ID (DOC001, DOC002, etc.)
+        const documentsQuery = query(collection(db, "propertyDocuments"));
+        const documentsSnapshot = await getDocs(documentsQuery);
+        let maxDocNumber = 0;
+
+        documentsSnapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          const docId = data.documentId;
+          if (docId && docId.startsWith("DOC")) {
+            const match = docId.match(/DOC(\d+)/);
+            if (match) {
+              const num = parseInt(match[1], 10);
+              if (num > maxDocNumber) maxDocNumber = num;
+            }
+          }
+        });
+
+        const nextDocNumber = maxDocNumber + 1;
+        const documentId = `DOC${String(nextDocNumber).padStart(3, "0")}`;
+        const documentNumber = `DOC${String(nextDocNumber).padStart(6, "0")}`;
+
+        // Create document data matching the existing structure
+        const documentData = {
+          documentId: documentId,
+          documentName: file.name,
+          documentType: documentType.toLowerCase().replace(/\s+/g, "_"), // Convert to snake_case
+          documentCategory: "",
+          documentNumber: documentNumber, // DOC000001 format
+          fileName: file.name,
+          fileSize: file.size,
+          fileUrl: `https://firebasestorage.googleapis.com/v0/b/your-project-id/o/documents%2F${encodeURIComponent(file.name)}?alt=media`, // Placeholder URL
+          documentHash: "",
+          isAuthentic: "true", // String "true" as shown in your data
+          isRequired: true,
+          propertyId: selectedProperty,
+          uploadedBy: agentId, // Use agentId instead of UID
+          uploadedAt: serverTimestamp(),
+          verificationStatus: "pending",
+          verificationNotes: "",
+          verificationWeight: 20, // Default weight
+          verifiedBy: "",
+          verifiedAt: null,
+          agentId: agentId,
+          agentUID: currentUser.uid,
+          createdAt: serverTimestamp(),
+        };
+
+        console.log("Document data to upload:", documentData);
+
+        try {
+          // Add to Firestore with retry logic
+          let docRef;
+          let retryCount = 0;
+          const maxRetries = 3;
+
+          while (retryCount < maxRetries) {
+            try {
+              docRef = await addDoc(
+                collection(db, "propertyDocuments"),
+                documentData,
+              );
+              console.log("Document uploaded successfully with ID:", docRef.id);
+              break; // Success, exit retry loop
+            } catch (retryError) {
+              retryCount++;
+              console.log(`Upload attempt ${retryCount} failed:`, retryError);
+
+              if (retryCount >= maxRetries) {
+                throw retryError; // Give up after max retries
+              }
+
+              // Wait before retrying (exponential backoff)
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * retryCount),
+              );
+            }
+          }
+
+          // Update progress to success
           setSelectedFiles((prev) =>
             prev.map((f) =>
-              f.id === file.id
-                ? {
-                    ...f,
-                    progress,
-                    status: progress === 100 ? "success" : "uploading",
-                  }
-                : f,
+              f.id === file.id ? { ...f, progress: 100, status: "success" } : f,
             ),
           );
-          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          // Small delay for visual feedback
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        } catch (fileError) {
+          console.error("Error uploading file:", file.name, fileError);
+          setSelectedFiles((prev) =>
+            prev.map((f) =>
+              f.id === file.id ? { ...f, progress: 0, status: "error" } : f,
+            ),
+          );
+          throw fileError;
         }
       }
 
-      setMessage("All documents uploaded successfully!");
+      setMessage(
+        "All documents uploaded successfully! They are now pending admin verification.",
+      );
       setTimeout(() => {
         setSelectedFiles([]);
         setDocumentType("");
+        setSelectedProperty("");
         setMessage("");
-      }, 2000);
+      }, 3000);
     } catch (error) {
-      setMessage("Upload failed. Please try again.");
+      console.error("Upload error:", error);
+      setMessage(`Upload failed: ${error.message || "Unknown error"}`);
     } finally {
       setUploading(false);
     }
@@ -123,7 +316,26 @@ export default function AgentDocumentUpload() {
 
             {/* Upload Form */}
             <div className="mb-6 rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                {/* Property Selection */}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Select Property *
+                  </label>
+                  <select
+                    value={selectedProperty}
+                    onChange={(e) => setSelectedProperty(e.target.value)}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select a property</option>
+                    {properties.map((property) => (
+                      <option key={property.id} value={property.id}>
+                        {property.title} - {property.address}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Document Type Selection */}
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -148,25 +360,14 @@ export default function AgentDocumentUpload() {
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Select Files
                   </label>
-                  <div className="rounded-lg border-2 border-dashed border-gray-300 p-6 text-center transition-colors hover:border-blue-500 dark:border-gray-600 dark:hover:border-blue-400">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      onChange={handleFileSelect}
-                      className="hidden"
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full rounded-md bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
-                    >
-                      Choose Files
-                    </button>
-                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                      PDF, DOC, DOCX, JPG, PNG (Max 10MB each)
-                    </p>
-                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    onChange={handleFileSelect}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
                 </div>
               </div>
 
@@ -174,10 +375,8 @@ export default function AgentDocumentUpload() {
               <div className="mt-6">
                 <button
                   onClick={handleUpload}
-                  disabled={
-                    uploading || selectedFiles.length === 0 || !documentType
-                  }
-                  className="w-full rounded-md bg-green-600 px-4 py-3 text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+                  disabled={uploading}
+                  className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   {uploading ? "Uploading..." : "Upload Documents"}
                 </button>
@@ -185,98 +384,61 @@ export default function AgentDocumentUpload() {
 
               {/* Message */}
               {message && (
-                <div
-                  className={`mt-4 rounded-md p-3 ${
-                    message.includes("successfully")
-                      ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                      : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                  }`}
-                >
+                <div className="mt-4 rounded-md bg-blue-100 p-3 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                   {message}
                 </div>
               )}
             </div>
 
-            {/* Selected Files List */}
+            {/* Selected Files */}
             {selectedFiles.length > 0 && (
               <div className="rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
                 <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-                  Selected Files ({selectedFiles.length})
+                  Selected Files
                 </h3>
                 <div className="space-y-3">
                   {selectedFiles.map((file) => (
                     <div
                       key={file.id}
-                      className="flex items-center justify-between rounded-md bg-gray-50 p-3 dark:bg-gray-700"
+                      className="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700"
                     >
-                      <div className="flex items-center space-x-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
-                          <svg
-                            className="h-4 w-4 text-blue-600 dark:text-blue-400"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {file.name}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatFileSize(file.size)}
-                          </p>
-                        </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {file.name}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {formatFileSize(file.size)} • {file.type}
+                        </p>
                       </div>
-
-                      <div className="flex items-center space-x-2">
-                        {/* Progress Bar */}
+                      <div className="flex items-center gap-2">
                         {file.status === "uploading" && (
-                          <div className="h-2 w-20 rounded-full bg-gray-200 dark:bg-gray-600">
-                            <div
-                              className="h-2 rounded-full bg-blue-600 transition-all duration-300"
-                              style={{ width: `${file.progress}%` }}
-                            ></div>
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-16 rounded-full bg-gray-200 dark:bg-gray-700">
+                              <div
+                                className="h-2 rounded-full bg-blue-600 transition-all duration-300"
+                                style={{ width: `${file.progress}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              {file.progress}%
+                            </span>
                           </div>
                         )}
-
-                        {/* Status Icon */}
                         {file.status === "success" && (
-                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
-                            <svg
-                              className="h-3 w-3 text-white"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </div>
+                          <span className="text-sm text-green-600 dark:text-green-400">
+                            ✓ Uploaded
+                          </span>
                         )}
-
-                        {/* Remove Button */}
+                        {file.status === "error" && (
+                          <span className="text-sm text-red-600 dark:text-red-400">
+                            ✗ Error
+                          </span>
+                        )}
                         <button
                           onClick={() => removeFile(file.id)}
-                          className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                          className="text-red-500 hover:text-red-700"
                         >
-                          <svg
-                            className="h-4 w-4"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
+                          ✕
                         </button>
                       </div>
                     </div>
@@ -284,81 +446,6 @@ export default function AgentDocumentUpload() {
                 </div>
               </div>
             )}
-
-            {/* Quick Actions */}
-            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-              <button
-                onClick={() => router.push("/agent/agent-dashboard")}
-                className="rounded-lg bg-blue-50 p-4 transition-colors hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30"
-              >
-                <div className="flex items-center space-x-3">
-                  <svg
-                    className="h-6 w-6 text-blue-600 dark:text-blue-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                    />
-                  </svg>
-                  <span className="font-medium text-blue-600 dark:text-blue-400">
-                    Dashboard
-                  </span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => router.push("/agent/agentPropertyList")}
-                className="rounded-lg bg-green-50 p-4 transition-colors hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30"
-              >
-                <div className="flex items-center space-x-3">
-                  <svg
-                    className="h-6 w-6 text-green-600 dark:text-green-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                    />
-                  </svg>
-                  <span className="font-medium text-green-600 dark:text-green-400">
-                    Property List
-                  </span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => router.push("/agent/agentNotification")}
-                className="rounded-lg bg-purple-50 p-4 transition-colors hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/30"
-              >
-                <div className="flex items-center space-x-3">
-                  <svg
-                    className="h-6 w-6 text-purple-600 dark:text-purple-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 17h5l-5 5v-5zM4.19 4a2 2 0 00-1.81 1.85V19a2 2 0 002 2h12a2 2 0 002-2V5.85A2 2 0 0019.81 4H4.19z"
-                    />
-                  </svg>
-                  <span className="font-medium text-purple-600 dark:text-purple-400">
-                    Notifications
-                  </span>
-                </div>
-              </button>
-            </div>
           </div>
         </div>
       </div>

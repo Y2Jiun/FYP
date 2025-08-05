@@ -7,15 +7,32 @@ export async function POST(req) {
     const { documentId, status, notes, adminId } = await req.json();
 
     // Get document data to find the property and agent
-    const documentDoc = await db
+    // First try to find by custom documentId field
+    let documentDoc;
+    let actualDocId = documentId;
+
+    // Query by custom documentId field
+    const documentQuery = await db
       .collection("propertyDocuments")
-      .doc(documentId)
+      .where("documentId", "==", documentId)
       .get();
-    if (!documentDoc.exists) {
-      return NextResponse.json(
-        { error: "Document not found" },
-        { status: 404 },
-      );
+
+    if (!documentQuery.empty) {
+      // Found by custom documentId
+      documentDoc = documentQuery.docs[0];
+      actualDocId = documentDoc.id; // Get the actual Firestore document ID
+    } else {
+      // Try to find by Firestore document ID (fallback)
+      documentDoc = await db
+        .collection("propertyDocuments")
+        .doc(documentId)
+        .get();
+      if (!documentDoc.exists) {
+        return NextResponse.json(
+          { error: "Document not found" },
+          { status: 404 },
+        );
+      }
     }
 
     const documentData = documentDoc.data();
@@ -33,13 +50,25 @@ export async function POST(req) {
     const propertyData = propertyDoc.data();
     const agentUID = propertyData.agentUID; // Get the agent's UID
 
-    // Update document status
-    await db.collection("propertyDocuments").doc(documentId).update({
+    // Update document status using the actual Firestore document ID
+    await db.collection("propertyDocuments").doc(actualDocId).update({
       verificationStatus: status,
       verifiedBy: adminId,
       verifiedAt: new Date(),
       verificationNotes: notes,
     });
+
+    // Update property trust score after document verification
+    try {
+      const {
+        updatePropertyTrustScore,
+      } = require("../../../../../src/utils/trustScoreCalculator");
+      await updatePropertyTrustScore(propertyId);
+      console.log("Property trust score updated after document verification");
+    } catch (trustScoreError) {
+      console.error("Error updating trust score:", trustScoreError);
+      // Don't fail the document verification if trust score update fails
+    }
 
     // Generate custom history ID
     const historyId = await getOrIncrementCounter(

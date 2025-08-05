@@ -21,6 +21,7 @@ import {
   arrayUnion,
 } from "firebase/firestore";
 import { serverTimestamp } from "firebase/firestore";
+import { TrustScoreBadge } from "@/components/TrustScore";
 
 interface Property {
   id: string;
@@ -32,6 +33,8 @@ interface Property {
   image1?: string;
   agentUID?: string;
   agentId?: string;
+  trustScore?: number;
+  trustBadge?: string;
 }
 
 function getStatusColor(status: string) {
@@ -608,76 +611,54 @@ export default function AgentPropertyList() {
         console.log("Agent ID:", agentId);
         console.log("Agent UID:", currentUser.uid);
 
-        // Fetch only properties that belong to this agent
+        // Set up real-time listener for properties that belong to this agent
         const q = query(
           collection(db, "properties"),
           where("agentId", "==", agentId),
           where("status", "!=", "rejected"),
         );
-        const querySnapshot = await getDocs(q);
 
-        console.log("Found properties for agent:", querySnapshot.docs.length);
-
-        const propertyList: Property[] = querySnapshot.docs
-          .map((doc) => {
-            const data = doc.data();
-            return {
-              id: data.propertyId || doc.id,
-              title: data.title || "Untitled Property",
-              address: data.address || "-",
-              price: data.price || 0,
-              type: data.propertyType || "-",
-              status: data.status || "pending",
-              image1: data.image1 || "",
-              agentUID: data.agentUID || "",
-              agentId: data.agentId || "",
-            };
-          })
-          .filter((property) => property.status !== "rejected");
-        setProperties(propertyList);
-
-        // Calculate unread counts for each property
-        const unreadCounts: { [key: string]: number } = {};
-        for (const property of propertyList) {
-          try {
-            // Get all chats for this property and current agent
-            const currentUser = auth.currentUser;
-            if (!currentUser) continue;
-            const chatsQuery = query(
-              collection(db, "chats"),
-              where("propertyId", "==", property.id),
-              where("agentUID", "==", currentUser.uid),
+        // Use onSnapshot for real-time updates instead of getDocs
+        const unsubscribe = onSnapshot(
+          q,
+          (querySnapshot) => {
+            console.log(
+              "Properties updated, found:",
+              querySnapshot.docs.length,
             );
-            const chatsSnapshot = await getDocs(chatsQuery);
 
-            let totalUnread = 0;
-            for (const chatDoc of chatsSnapshot.docs) {
-              // Get all messages in this chat
-              const messagesQuery = query(
-                collection(db, "chats", chatDoc.id, "messages"),
-                where("moderationStatus", "==", "approved"),
-              );
-              const messagesSnapshot = await getDocs(messagesQuery);
+            const propertyList: Property[] = querySnapshot.docs
+              .map((doc) => {
+                const data = doc.data();
+                return {
+                  id: data.propertyId || doc.id,
+                  title: data.title || "Untitled Property",
+                  address: data.address || "-",
+                  price: data.price || 0,
+                  type: data.propertyType || "-",
+                  status: data.status || "pending",
+                  image1: data.image1 || "",
+                  agentUID: data.agentUID || "",
+                  agentId: data.agentId || "",
+                  trustScore: data.trustScore || 0,
+                  trustBadge: data.trustBadge || "bronze",
+                };
+              })
+              .filter((property) => property.status !== "rejected");
 
-              // Count unread messages
-              const unreadInChat = messagesSnapshot.docs.filter((doc) => {
-                const messageData = doc.data();
-                const readBy = messageData.readBy || [];
-                return !readBy.includes(currentUser.uid);
-              }).length;
+            setProperties(propertyList);
+            setLoading(false);
+          },
+          (error) => {
+            console.error("Error listening to properties:", error);
+            setLoading(false);
+          },
+        );
 
-              totalUnread += unreadInChat;
-            }
-
-            unreadCounts[property.id] = totalUnread;
-          } catch (error) {
-            unreadCounts[property.id] = 0;
-          }
-        }
-        setPropertyUnreadCounts(unreadCounts);
+        // Return cleanup function
+        return () => unsubscribe();
       } catch (error) {
-        console.error("Error fetching properties:", error);
-      } finally {
+        console.error("Error setting up properties listener:", error);
         setLoading(false);
       }
     };
@@ -824,6 +805,15 @@ export default function AgentPropertyList() {
                           {property.status.charAt(0).toUpperCase() +
                             property.status.slice(1)}
                         </span>
+                      </div>
+                      <div className="mb-2">
+                        <TrustScoreBadge
+                          trustScore={property.trustScore || 0}
+                          trustBadge={property.trustBadge || "bronze"}
+                          showScore={true}
+                          showDescription={false}
+                          size="sm"
+                        />
                       </div>
                       <div className="mt-auto space-y-2">
                         <div className="flex gap-2">

@@ -25,6 +25,7 @@ import {
 import { PropertySearchService, FilterState } from "@/utils/propertySearch";
 import AdvancedSearchFilters from "@/components/Property/AdvancedSearchFilters";
 import { Property as SearchProperty } from "@/types/property";
+import { TrustScoreBadge } from "@/components/TrustScore";
 
 interface Property {
   id: string;
@@ -37,6 +38,8 @@ interface Property {
   agentId?: string;
   agentUID?: string;
   ownerId?: string; // Added ownerId to distinguish user's own properties
+  trustScore?: number;
+  trustBadge?: string;
 }
 
 function getStatusColor(status: string) {
@@ -111,7 +114,7 @@ export default function UserPropertyList() {
       // Fetch only verified properties for users
       const q = query(
         collection(db, "properties"),
-        where("status", "==", "verified")
+        where("status", "==", "verified"),
       );
       const querySnapshot = await getDocs(q);
       const propertyList: Property[] = querySnapshot.docs.map((doc) => {
@@ -127,6 +130,8 @@ export default function UserPropertyList() {
           agentId: data.agentId || "",
           agentUID: data.agentUID || "",
           ownerId: data.ownerId || "",
+          trustScore: data.trustScore || 0,
+          trustBadge: data.trustBadge || "bronze",
         };
       });
 
@@ -386,7 +391,7 @@ export default function UserPropertyList() {
                         </div>
                       )}
 
-                      <Link href={`/property/${property.id}`}>
+                      <div>
                         <img
                           src={
                             property.image1 ||
@@ -414,7 +419,26 @@ export default function UserPropertyList() {
                             {property.status}
                           </span>
                         </div>
-                      </Link>
+                        {/* Trust Score Badge */}
+                        <div className="mb-2">
+                          <TrustScoreBadge
+                            trustScore={property.trustScore || 0}
+                            trustBadge={property.trustBadge || "bronze"}
+                            showScore={true}
+                            showDescription={false}
+                            size="sm"
+                          />
+                        </div>
+                        {/* View Details Button */}
+                        <div className="mt-4">
+                          <Link
+                            href={`/property/${property.id}`}
+                            className="inline-block w-full rounded-lg bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                          >
+                            View Details
+                          </Link>
+                        </div>
+                      </div>
                     </div>
                   ))}
 
@@ -450,14 +474,16 @@ export default function UserPropertyList() {
                             </span>
                           </div>
                         )}
-                        {/* Trust Score */}
-                        {property.trustScore && (
-                          <div className="absolute top-2 right-2">
-                            <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
-                              Trust: {property.trustScore}%
-                            </span>
-                          </div>
-                        )}
+                        {/* Trust Score Badge */}
+                        <div className="absolute top-2 right-2">
+                          <TrustScoreBadge
+                            trustScore={property.trustScore || 0}
+                            trustBadge={property.trustBadge || "bronze"}
+                            showScore={true}
+                            showDescription={false}
+                            size="sm"
+                          />
+                        </div>
                       </div>
 
                       {/* Property Details */}
@@ -511,6 +537,16 @@ export default function UserPropertyList() {
                             Verified Agent
                           </div>
                         )}
+
+                        {/* View Details Button */}
+                        <div className="mt-4">
+                          <Link
+                            href={`/property/${property.propertyId}`}
+                            className="inline-block w-full rounded-lg bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                          >
+                            View Details
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   ))}

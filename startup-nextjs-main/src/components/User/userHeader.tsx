@@ -18,7 +18,6 @@ import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
 const userMenu = [
   { title: "Dashboard", path: "/user/user-dashboard" },
-  { title: "My Properties", path: "/user/userPropertyList" },
   { title: "News", path: "/user/userNews" },
   { title: "Agent Verified", path: "/user/userToagent" },
 ];
@@ -308,6 +307,39 @@ export default function UserHeader() {
               {item.title}
             </Link>
           ))}
+
+          {/* My Properties Dropdown */}
+          <Menu as="div" className="relative inline-block text-left">
+            <Menu.Button className="hover:text-primary flex items-center gap-1 rounded px-3 py-2 font-medium text-gray-900 transition-colors duration-200 dark:text-white">
+              My Properties
+              <ChevronDownIcon className="h-4 w-4" />
+            </Menu.Button>
+            <Menu.Items className="absolute left-0 z-50 mt-2 w-48 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none dark:bg-[#23272f]">
+              <div className="py-1">
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link
+                      href="/user/userPropertyList"
+                      className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-100 dark:bg-gray-700" : ""}`}
+                    >
+                      Properties
+                    </Link>
+                  )}
+                </Menu.Item>
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link
+                      href="/user/savedProperties"
+                      className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-100 dark:bg-gray-700" : ""}`}
+                    >
+                      Saved Properties
+                    </Link>
+                  )}
+                </Menu.Item>
+              </div>
+            </Menu.Items>
+          </Menu>
+
           <Menu as="div" className="relative inline-block text-left">
             <Menu.Button className="hover:text-primary flex items-center gap-1 rounded px-3 py-2 font-medium text-gray-900 transition-colors duration-200 dark:text-white">
               Other
@@ -319,7 +351,7 @@ export default function UserHeader() {
                   {({ active }) => (
                     <Link
                       href="/user/userCalculator"
-                      className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-700" : ""}`}
+                      className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-100 dark:bg-gray-700" : ""}`}
                     >
                       Loan Calculator
                     </Link>
@@ -329,7 +361,7 @@ export default function UserHeader() {
                   {({ active }) => (
                     <Link
                       href="/user/ROICalculator"
-                      className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-700" : ""}`}
+                      className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-100 dark:bg-gray-700" : ""}`}
                     >
                       ROI Calculator
                     </Link>
@@ -339,7 +371,7 @@ export default function UserHeader() {
                   {({ active }) => (
                     <Link
                       href="/user/userChatbot"
-                      className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-700" : ""}`}
+                      className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-100 dark:bg-gray-700" : ""}`}
                     >
                       Chatbot
                     </Link>
@@ -349,7 +381,7 @@ export default function UserHeader() {
                   {({ active }) => (
                     <Link
                       href="/user/userFAQ"
-                      className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-700" : ""}`}
+                      className={`block px-4 py-2 text-sm text-gray-900 transition-colors duration-200 dark:text-white ${active ? "bg-gray-100 dark:bg-gray-700" : ""}`}
                     >
                       FAQ
                     </Link>

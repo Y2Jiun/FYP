@@ -12,14 +12,17 @@ import {
 interface FilterState {
   verificationLevel: string;
   propertyType: string;
-  priceRange: { min: number; max: number };
+  minPrice: number;
+  maxPrice: number;
   location: string;
   neighborhood: string;
   zipCode: string;
   amenities: string[];
-  dateRange: { start: string; end: string };
+  minDate: string;
+  maxDate: string;
   agentVerified: boolean;
-  trustScore: { min: number; max: number };
+  minTrustScore: number;
+  maxTrustScore: number;
 }
 
 interface AdvancedSearchFiltersProps {
@@ -78,14 +81,17 @@ export default function AdvancedSearchFilters({
   const [filters, setFilters] = useState<FilterState>({
     verificationLevel: "ALL",
     propertyType: "ALL",
-    priceRange: { min: 0, max: 1000000 },
+    minPrice: 0,
+    maxPrice: 1000000,
     location: "",
     neighborhood: "",
     zipCode: "",
     amenities: [],
-    dateRange: { start: "", end: "" },
+    minDate: "",
+    maxDate: "",
     agentVerified: false,
-    trustScore: { min: 0, max: 100 },
+    minTrustScore: 0,
+    maxTrustScore: 100,
   });
 
   const [priceInputs, setPriceInputs] = useState({
@@ -112,10 +118,7 @@ export default function AdvancedSearchFilters({
     const numValue = value === "" ? 0 : parseInt(value);
     setFilters((prev) => ({
       ...prev,
-      priceRange: {
-        ...prev.priceRange,
-        [type]: numValue,
-      },
+      [type === "min" ? "minPrice" : "maxPrice"]: numValue,
     }));
   };
 
@@ -124,10 +127,7 @@ export default function AdvancedSearchFilters({
     const numValue = value === "" ? 0 : parseInt(value);
     setFilters((prev) => ({
       ...prev,
-      trustScore: {
-        ...prev.trustScore,
-        [type]: numValue,
-      },
+      [type === "min" ? "minTrustScore" : "maxTrustScore"]: numValue,
     }));
   };
 
@@ -144,14 +144,17 @@ export default function AdvancedSearchFilters({
     setFilters({
       verificationLevel: "ALL",
       propertyType: "ALL",
-      priceRange: { min: 0, max: 1000000 },
+      minPrice: 0,
+      maxPrice: 1000000,
       location: "",
       neighborhood: "",
       zipCode: "",
       amenities: [],
-      dateRange: { start: "", end: "" },
+      minDate: "",
+      maxDate: "",
       agentVerified: false,
-      trustScore: { min: 0, max: 100 },
+      minTrustScore: 0,
+      maxTrustScore: 100,
     });
     setPriceInputs({ min: "", max: "" });
     setTrustScoreInputs({ min: "", max: "" });
@@ -323,24 +326,14 @@ export default function AdvancedSearchFilters({
           <div className="flex gap-2">
             <input
               type="date"
-              value={filters.dateRange.start}
-              onChange={(e) =>
-                handleFilterChange("dateRange", {
-                  ...filters.dateRange,
-                  start: e.target.value,
-                })
-              }
+              value={filters.minDate}
+              onChange={(e) => handleFilterChange("minDate", e.target.value)}
               className="w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
             />
             <input
               type="date"
-              value={filters.dateRange.end}
-              onChange={(e) =>
-                handleFilterChange("dateRange", {
-                  ...filters.dateRange,
-                  end: e.target.value,
-                })
-              }
+              value={filters.maxDate}
+              onChange={(e) => handleFilterChange("maxDate", e.target.value)}
               className="w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
             />
           </div>

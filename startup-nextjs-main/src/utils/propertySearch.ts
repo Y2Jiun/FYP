@@ -13,14 +13,17 @@ import { Property } from "@/types/property";
 export interface FilterState {
   verificationLevel: string;
   propertyType: string;
-  priceRange: { min: number; max: number };
+  minPrice: number;
+  maxPrice: number;
   location: string;
   neighborhood: string;
   zipCode: string;
   amenities: string[];
-  dateRange: { start: string; end: string };
+  minDate: string;
+  maxDate: string;
   agentVerified: boolean;
-  trustScore: { min: number; max: number };
+  minTrustScore: number;
+  maxTrustScore: number;
 }
 
 export interface SearchResult {
@@ -38,62 +41,17 @@ export class PropertySearchService {
   ): QueryConstraint[] {
     const constraints: QueryConstraint[] = [];
 
-    // Verification Level Filter
-    if (filters.verificationLevel !== "ALL") {
-      constraints.push(
-        where("verificationLevel", "==", filters.verificationLevel),
-      );
-    }
+    // Only add basic constraints that we know exist in the data
+    // More complex filtering will be done client-side
 
-    // Property Type Filter
+    // Property Type Filter (only if it's not ALL)
     if (filters.propertyType !== "ALL") {
       constraints.push(where("propertyType", "==", filters.propertyType));
     }
 
-    // Price Range Filter
-    if (filters.priceRange.min > 0) {
-      constraints.push(where("price", ">=", filters.priceRange.min));
-    }
-    if (filters.priceRange.max < 1000000) {
-      constraints.push(where("price", "<=", filters.priceRange.max));
-    }
-
-    // Trust Score Filter
-    if (filters.trustScore.min > 0) {
-      constraints.push(where("trustScore", ">=", filters.trustScore.min));
-    }
-    if (filters.trustScore.max < 100) {
-      constraints.push(where("trustScore", "<=", filters.trustScore.max));
-    }
-
-    // Location Filter
-    if (filters.location) {
-      constraints.push(where("location.city", "==", filters.location));
-    }
-
-    // Neighborhood Filter
-    if (filters.neighborhood) {
-      constraints.push(where("neighborhood", "==", filters.neighborhood));
-    }
-
-    // Zip Code Filter
-    if (filters.zipCode) {
-      constraints.push(where("zipCode", "==", filters.zipCode));
-    }
-
-    // Agent Verification Filter
-    if (filters.agentVerified) {
-      constraints.push(where("agentVerified", "==", true));
-    }
-
-    // Date Range Filter (Listed Date)
-    if (filters.dateRange.start) {
-      const startDate = new Date(filters.dateRange.start);
-      constraints.push(where("listedDate", ">=", startDate));
-    }
-    if (filters.dateRange.end) {
-      const endDate = new Date(filters.dateRange.end);
-      constraints.push(where("listedDate", "<=", endDate));
+    // Price Range Filter (only if min price is set)
+    if (filters.minPrice > 0) {
+      constraints.push(where("price", ">=", filters.minPrice));
     }
 
     // Default ordering
@@ -110,7 +68,76 @@ export class PropertySearchService {
     filters: FilterState,
   ): Property[] {
     return properties.filter((property) => {
-      // Amenities Filter (Firestore doesn't support array-contains-all efficiently)
+      // Verification Level Filter (using trustBadge field)
+      if (filters.verificationLevel !== "ALL") {
+        const propertyBadge = property.trustBadge?.toUpperCase() || "BRONZE";
+        if (propertyBadge !== filters.verificationLevel) {
+          return false;
+        }
+      }
+
+      // Price Range Filter (client-side for max price)
+      if (filters.maxPrice < 1000000 && property.price > filters.maxPrice) {
+        return false;
+      }
+
+      // Trust Score Filter (client-side)
+      if (
+        filters.minTrustScore > 0 &&
+        (property.trustScore || 0) < filters.minTrustScore
+      ) {
+        return false;
+      }
+      if (
+        filters.maxTrustScore < 100 &&
+        (property.trustScore || 0) > filters.maxTrustScore
+      ) {
+        return false;
+      }
+
+      // Location Filter (client-side)
+      if (filters.location && property.address) {
+        const addressLower = property.address.toLowerCase();
+        const locationLower = filters.location.toLowerCase();
+        if (!addressLower.includes(locationLower)) {
+          return false;
+        }
+      }
+
+      // Neighborhood Filter (client-side)
+      if (filters.neighborhood && property.address) {
+        const addressLower = property.address.toLowerCase();
+        const neighborhoodLower = filters.neighborhood.toLowerCase();
+        if (!addressLower.includes(neighborhoodLower)) {
+          return false;
+        }
+      }
+
+      // Zip Code Filter (client-side)
+      if (filters.zipCode && property.postcode) {
+        const propertyPostcode = property.postcode.toString();
+        if (propertyPostcode !== filters.zipCode) {
+          return false;
+        }
+      }
+
+      // Date Range Filter (client-side)
+      if (filters.minDate && property.createdAt) {
+        const propertyDate = new Date(property.createdAt);
+        const minDate = new Date(filters.minDate);
+        if (propertyDate < minDate) {
+          return false;
+        }
+      }
+      if (filters.maxDate && property.createdAt) {
+        const propertyDate = new Date(property.createdAt);
+        const maxDate = new Date(filters.maxDate);
+        if (propertyDate > maxDate) {
+          return false;
+        }
+      }
+
+      // Amenities Filter (client-side)
       if (filters.amenities.length > 0) {
         const hasAllAmenities = filters.amenities.every(
           (amenity) =>
@@ -118,6 +145,15 @@ export class PropertySearchService {
             property.verifiedAmenities?.includes(amenity),
         );
         if (!hasAllAmenities) return false;
+      }
+
+      // Agent Verification Filter (client-side check)
+      if (filters.agentVerified) {
+        // For now, we'll consider all agents as verified since we don't have an agent verification field
+        // In a real implementation, you'd check against a verified agents list
+        if (!property.agentId) {
+          return false;
+        }
       }
 
       return true;
