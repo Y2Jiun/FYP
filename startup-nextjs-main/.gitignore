@@ -26,7 +26,44 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # local env files
+.env
 .env*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # vercel
 .vercel
+
+# Firebase
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+pglite-debug.log*
+
+# Sensitive files - IMPORTANT: Keep these secure!
+serviceAccountKey.json
+*.key
+*.pem
+
+# IDE files
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional caches
+.eslintcache
+.stylelintcache

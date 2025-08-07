@@ -6,13 +6,13 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCI3cfmtgWQw3rkAmOWpxrdBNSvBH00R8s",
-  authDomain: "derrick-3157c.firebaseapp.com",
-  projectId: "derrick-3157c",
-  storageBucket: "derrick-3157c.appspot.com",
-  messagingSenderId: "892123233032",
-  appId: "1:892123233032:web:6c922c6204584b031bcabd",
-  measurementId: "G-KE7VBSGF8F",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID!,
 };
 
 // Initialize Firebase

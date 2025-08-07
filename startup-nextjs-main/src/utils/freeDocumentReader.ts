@@ -63,59 +63,150 @@ export async function performFreeOCR(
 ): Promise<DocumentTextResult> {
   try {
     console.log("🔍 Starting free OCR with Tesseract.js...");
+    console.log("📁 File details:", {
+      name: imageFile.name,
+      type: imageFile.type,
+      size: imageFile.size,
+    });
 
-    // For testing purposes, provide a fallback if tesseract.js fails to load
+    // Check if Tesseract is loaded, if not try to load it
     if (!Tesseract) {
-      console.log("⚠️ Tesseract.js not loaded, using fallback simulation...");
-
-      // Simulate OCR processing for testing
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate processing time
-
-      return {
-        text: `Sample extracted text from ${imageFile.name}\nThis is a simulated OCR result for testing purposes.\nDocument contains property information and verification data.`,
-        confidence: 85,
-        words: [
-          {
-            text: "Sample",
-            confidence: 90,
-            bbox: { x0: 0, y0: 0, x1: 50, y1: 20 },
-          },
-        ],
-        lines: [
-          {
-            text: "Sample extracted text",
-            confidence: 85,
-          },
-        ],
-      };
+      console.log("⚠️ Tesseract.js not loaded, attempting to load...");
+      try {
+        const tesseractModule = await import("tesseract.js");
+        Tesseract = tesseractModule.default;
+        console.log("✅ Tesseract.js loaded successfully");
+      } catch (loadError) {
+        console.error("❌ Failed to load Tesseract.js:", loadError);
+        throw new Error(
+          "Tesseract.js failed to load: " +
+            (loadError instanceof Error
+              ? loadError.message
+              : String(loadError)),
+        );
+      }
     }
+
+    // Validate file before processing
+    if (!imageFile || imageFile.size === 0) {
+      throw new Error("Invalid or empty file provided for OCR");
+    }
+
+    // Check if it's a valid image format
+    const validTypes = [
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/gif",
+      "image/bmp",
+      "image/webp",
+    ];
+    if (!validTypes.includes(imageFile.type)) {
+      console.warn("⚠️ Unusual file type for OCR:", imageFile.type);
+    }
+
+    // Additional validation: try to create an image element to verify the file
+    // Only validate if it's actually an image file (not PDF or other formats)
+    if (validTypes.includes(imageFile.type)) {
+      console.log("🔍 Validating image file...");
+      try {
+        const imageUrl = URL.createObjectURL(imageFile);
+        const img = new Image();
+
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            console.log("✅ Image validation successful:", {
+              width: img.width,
+              height: img.height,
+            });
+            URL.revokeObjectURL(imageUrl);
+            resolve(true);
+          };
+          img.onerror = (error) => {
+            console.error("❌ Image validation failed:", error);
+            URL.revokeObjectURL(imageUrl);
+            reject(new Error("Invalid image file - cannot be loaded"));
+          };
+          img.src = imageUrl;
+        });
+      } catch (validationError) {
+        console.error("❌ Image validation error:", validationError);
+        throw new Error(
+          "Image validation failed: " +
+            (validationError instanceof Error
+              ? validationError.message
+              : String(validationError)),
+        );
+      }
+    } else {
+      console.log(
+        "⏭️ Skipping image validation for non-image file type:",
+        imageFile.type,
+      );
+    }
+
+    console.log("🚀 Starting Tesseract recognition...");
+    console.log("📁 File being processed:", {
+      name: imageFile.name,
+      type: imageFile.type,
+      size: imageFile.size,
+      lastModified: imageFile.lastModified,
+    });
 
     const result = await Tesseract.recognize(
       imageFile,
       "eng", // English language
       {
-        logger: (m) => console.log("OCR Progress:", m),
-        errorHandler: (err) => console.error("OCR Error:", err),
+        logger: (m) => {
+          if (m.status === "recognizing text") {
+            console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+          } else {
+            console.log("OCR Status:", m.status);
+          }
+        },
+        errorHandler: (err) => {
+          console.error("OCR Error Handler:", err);
+          throw err; // Re-throw to be caught by main try-catch
+        },
       },
     );
 
     console.log("✅ OCR completed successfully");
+    console.log("🔍 Full OCR result structure:", result);
+
+    // Check if result.data exists
+    if (!result || !result.data) {
+      console.error("❌ OCR result is missing data:", result);
+      throw new Error("OCR processing failed - no data returned");
+    }
+
+    console.log("📊 OCR Results:", {
+      textLength: result.data.text?.length || 0,
+      confidence: result.data.confidence || 0,
+      wordCount: result.data.words?.length || 0,
+      lineCount: result.data.lines?.length || 0,
+    });
 
     return {
-      text: result.data.text,
-      confidence: result.data.confidence,
-      words: result.data.words.map((word) => ({
-        text: word.text,
-        confidence: word.confidence,
+      text: result.data.text || "",
+      confidence: result.data.confidence || 0,
+      words: (result.data.words || []).map((word) => ({
+        text: word.text || "",
+        confidence: word.confidence || 0,
         bbox: word.bbox,
       })),
-      lines: result.data.lines.map((line) => ({
-        text: line.text,
-        confidence: line.confidence,
+      lines: (result.data.lines || []).map((line) => ({
+        text: line.text || "",
+        confidence: line.confidence || 0,
       })),
     };
   } catch (error) {
-    console.error("Free OCR Error:", error);
+    console.error("❌ Free OCR Error:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
 
     // Provide fallback for testing
     console.log("🔄 Using fallback OCR simulation due to error...");
@@ -148,32 +239,80 @@ export async function convertPDFPageToImage(
 ): Promise<PDFPageInfo> {
   try {
     console.log("📄 Converting PDF page to image...");
+    console.log("📁 PDF File details:", {
+      name: pdfFile.name,
+      type: pdfFile.type,
+      size: pdfFile.size,
+    });
 
+    // Load PDF.js if not already loaded
     if (!pdfjsLib) {
-      const module = await import("pdfjs-dist");
-      pdfjsLib = module;
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
+      console.log("📚 Loading PDF.js library...");
+      try {
+        const module = await import("pdfjs-dist");
+        pdfjsLib = module;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
+        console.log("✅ PDF.js loaded successfully");
+      } catch (loadError) {
+        console.error("❌ Failed to load PDF.js:", loadError);
+        throw new Error(
+          "PDF.js failed to load: " +
+            (loadError instanceof Error
+              ? loadError.message
+              : String(loadError)),
+        );
+      }
+    }
+
+    // Validate PDF file
+    if (!pdfFile || pdfFile.size === 0) {
+      throw new Error("Invalid or empty PDF file provided");
+    }
+
+    if (pdfFile.type !== "application/pdf") {
+      console.warn("⚠️ File type is not PDF:", pdfFile.type);
     }
 
     // Load the PDF document
+    console.log("📖 Loading PDF document...");
     const arrayBuffer = await pdfFile.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-    console.log(`📊 PDF loaded with ${pdf.numPages} pages`);
+    if (arrayBuffer.byteLength === 0) {
+      throw new Error("PDF file appears to be empty");
+    }
 
-    if (pageNumber > pdf.numPages) {
+    const pdf = await pdfjsLib.getDocument({
+      data: arrayBuffer,
+      verbosity: 0, // Reduce console spam
+    }).promise;
+
+    console.log(`📊 PDF loaded successfully with ${pdf.numPages} pages`);
+
+    if (pageNumber < 1 || pageNumber > pdf.numPages) {
       throw new Error(
-        `Page ${pageNumber} does not exist. PDF has ${pdf.numPages} pages.`,
+        `Page ${pageNumber} does not exist. PDF has ${pdf.numPages} pages (valid range: 1-${pdf.numPages}).`,
       );
     }
 
     // Get the specific page
+    console.log(`📄 Rendering page ${pageNumber}...`);
     const page = await pdf.getPage(pageNumber);
     const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better quality
+
+    console.log("🖼️ Page viewport:", {
+      width: viewport.width,
+      height: viewport.height,
+      scale: 2.0,
+    });
 
     // Create canvas for rendering
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("Failed to get 2D canvas context");
+    }
+
     canvas.height = viewport.height;
     canvas.width = viewport.width;
 
@@ -183,10 +322,23 @@ export async function convertPDFPageToImage(
       viewport: viewport,
     };
 
+    console.log("🎨 Rendering PDF page to canvas...");
     await page.render(renderContext).promise;
 
     // Convert canvas to image data URL
-    const imageDataUrl = canvas.toDataURL("image/png");
+    console.log("🖼️ Converting canvas to image...");
+    const imageDataUrl = canvas.toDataURL("image/png", 0.95); // High quality PNG
+
+    if (!imageDataUrl || imageDataUrl === "data:,") {
+      throw new Error("Failed to convert PDF page to image - canvas is empty");
+    }
+
+    console.log("✅ PDF page converted to image successfully");
+    console.log("📊 Image details:", {
+      dataUrlLength: imageDataUrl.length,
+      width: viewport.width,
+      height: viewport.height,
+    });
 
     return {
       pageNumber,
@@ -195,7 +347,13 @@ export async function convertPDFPageToImage(
       imageDataUrl,
     };
   } catch (error) {
-    console.error("PDF conversion error:", error);
+    console.error("❌ PDF conversion error:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
+
     throw new Error(
       "PDF processing failed: " +
         (error instanceof Error ? error.message : String(error)),
@@ -205,15 +363,54 @@ export async function convertPDFPageToImage(
 
 // Convert image data URL to File object for OCR
 function dataURLtoFile(dataURL: string, filename: string): File {
-  const arr = dataURL.split(",");
-  const mime = arr[0].match(/:(.*?);/)?.[1] || "image/png";
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
+  try {
+    console.log("🔄 Converting data URL to File...");
+    console.log("📊 Data URL info:", {
+      length: dataURL.length,
+      startsWithData: dataURL.startsWith("data:"),
+      hasComma: dataURL.includes(","),
+    });
+
+    if (!dataURL || !dataURL.startsWith("data:")) {
+      throw new Error("Invalid data URL provided");
+    }
+
+    const arr = dataURL.split(",");
+    if (arr.length !== 2) {
+      throw new Error("Malformed data URL - missing comma separator");
+    }
+
+    const mime = arr[0].match(/:(.*?);/)?.[1] || "image/png";
+    console.log("🎯 Detected MIME type:", mime);
+
+    const bstr = atob(arr[1]);
+    console.log("📏 Base64 decoded length:", bstr.length);
+
+    if (bstr.length === 0) {
+      throw new Error("Empty base64 data in data URL");
+    }
+
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+
+    const file = new File([u8arr], filename, { type: mime });
+    console.log("✅ File created successfully:", {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
+
+    return file;
+  } catch (error) {
+    console.error("❌ dataURLtoFile error:", error);
+    throw new Error(
+      "Failed to convert data URL to File: " +
+        (error instanceof Error ? error.message : String(error)),
+    );
   }
-  return new File([u8arr], filename, { type: mime });
 }
 
 // Extract key fields from OCR text
@@ -346,15 +543,31 @@ export async function performFreeDocumentReading(
     // Step 1: Handle PDF files
     if (file.type === "application/pdf") {
       console.log("📄 Processing PDF file...");
-      pdfInfo = await convertPDFPageToImage(file, pdfPageNumber);
-      ocrFile = dataURLtoFile(
-        pdfInfo.imageDataUrl,
-        `page-${pdfPageNumber}.png`,
-      );
-      console.log("✅ PDF converted to image for OCR");
+      try {
+        pdfInfo = await convertPDFPageToImage(file, pdfPageNumber);
+        ocrFile = dataURLtoFile(
+          pdfInfo.imageDataUrl,
+          `page-${pdfPageNumber}.png`,
+        );
+        console.log("✅ PDF converted to image for OCR");
+        console.log("🖼️ Generated image file:", {
+          name: ocrFile.name,
+          type: ocrFile.type,
+          size: ocrFile.size,
+        });
+      } catch (pdfError) {
+        console.error("❌ PDF conversion failed:", pdfError);
+        throw new Error(
+          "Failed to convert PDF to image: " +
+            (pdfError instanceof Error ? pdfError.message : String(pdfError)),
+        );
+      }
+    } else {
+      console.log("🖼️ Processing image file directly");
     }
 
     // Step 2: Perform OCR
+    console.log("🔍 Starting OCR process...");
     const ocrResult = await performFreeOCR(ocrFile);
     console.log("✅ OCR completed with confidence:", ocrResult.confidence);
 

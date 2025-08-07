@@ -20,6 +20,7 @@ interface UploadedFile {
   size: number;
   status: "uploading" | "success" | "error";
   progress: number;
+  file: File; // Store the actual File object
 }
 
 interface Property {
@@ -37,6 +38,64 @@ export default function AgentDocumentUpload() {
   const [message, setMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // Helper function to upload file to Cloudinary (FREE tier: 25GB storage!)
+  const uploadToCloudinary = async (file: File): Promise<string> => {
+    try {
+      console.log("Uploading to Cloudinary:", file.name, file.type, file.size);
+
+      // Convert file to base64 using FileReader (client-side compatible)
+      const base64File = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const formData = new FormData();
+      formData.append("file", base64File); // Already includes data:type;base64, prefix
+      formData.append("upload_preset", "derrick");
+      formData.append("folder", "property-documents");
+      formData.append("resource_type", "auto"); // Handle PDFs and images
+
+      // Use the correct endpoint based on file type
+      const isPdf = file.type === "application/pdf";
+      const endpoint = isPdf
+        ? "https://api.cloudinary.com/v1_1/dvl5whm1n/raw/upload" // For PDFs
+        : "https://api.cloudinary.com/v1_1/dvl5whm1n/image/upload"; // For images
+
+      console.log("Using endpoint:", endpoint, "for file type:", file.type);
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Cloudinary HTTP error:", response.status, errorText);
+        throw new Error(
+          `HTTP error! status: ${response.status} - ${errorText}`,
+        );
+      }
+
+      const data = await response.json();
+      console.log("Cloudinary response:", data);
+
+      if (data.secure_url) {
+        console.log("Upload successful:", data.secure_url);
+        return data.secure_url;
+      } else {
+        console.error("Cloudinary error details:", data);
+        throw new Error(
+          "Upload failed: " + (data.error?.message || "No secure_url returned"),
+        );
+      }
+    } catch (error) {
+      console.error("Cloudinary upload error:", error);
+      throw error;
+    }
+  };
 
   const documentTypes = [
     "Property Title Deed",
@@ -103,6 +162,7 @@ export default function AgentDocumentUpload() {
       size: file.size,
       status: "uploading",
       progress: 0,
+      file: file, // Store the actual File object
     }));
     setSelectedFiles((prev) => [...prev, ...newFiles]);
   };
@@ -192,6 +252,11 @@ export default function AgentDocumentUpload() {
         const documentId = `DOC${String(nextDocNumber).padStart(3, "0")}`;
         const documentNumber = `DOC${String(nextDocNumber).padStart(6, "0")}`;
 
+        // Upload file to Cloudinary first
+        console.log(`Uploading ${file.name} to Cloudinary...`);
+        const cloudinaryUrl = await uploadToCloudinary(file.file); // Use the actual File object
+        console.log(`Upload successful: ${cloudinaryUrl}`);
+
         // Create document data matching the existing structure
         const documentData = {
           documentId: documentId,
@@ -201,7 +266,7 @@ export default function AgentDocumentUpload() {
           documentNumber: documentNumber, // DOC000001 format
           fileName: file.name,
           fileSize: file.size,
-          fileUrl: `https://firebasestorage.googleapis.com/v0/b/your-project-id/o/documents%2F${encodeURIComponent(file.name)}?alt=media`, // Placeholder URL
+          fileUrl: cloudinaryUrl, // Real Cloudinary URL - FREE 25GB storage!
           documentHash: "",
           isAuthentic: "true", // String "true" as shown in your data
           isRequired: true,

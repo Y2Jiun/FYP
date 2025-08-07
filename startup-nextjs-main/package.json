@@ -6,8 +6,11 @@
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:frontend": "next dev",
     "build": "next build",
+    "export": "next build && next export",
     "start": "next start",
-    "dev:backend": "node server/index.js"
+    "dev:backend": "node server/index.js",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@google-cloud/vision": "^5.3.1",
@@ -24,6 +27,7 @@
     "eslint": "^9.24.0",
     "eslint-config-next": "15.1.6",
     "firebase": "^11.10.0",
+    "firebase-admin": "^13.4.0",
     "helmet": "^8.1.0",
     "json2csv": "^6.0.0-alpha.2",
     "next": "^15.3.0",

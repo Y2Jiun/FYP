@@ -52,11 +52,161 @@ export default function AIDocumentVerification({
   });
   const [showDetails, setShowDetails] = useState(false);
   const [showFreeReader, setShowFreeReader] = useState(false);
+  const [isReadingDocument, setIsReadingDocument] = useState(false);
+  const [readingProgress, setReadingProgress] = useState<string>("");
+  const [freeReaderResult, setFreeReaderResult] =
+    useState<FreeDocumentResult | null>(null);
 
   // Monitor state changes
   useEffect(() => {
     console.log("State changed - results:", results);
   }, [results]);
+
+  // Function to read document directly from Firebase Storage
+  const handleReadExistingDocument = async () => {
+    if (!documentData?.fileUrl) {
+      alert("No document file URL available");
+      return;
+    }
+
+    setIsReadingDocument(true);
+    setReadingProgress("Fetching document from storage...");
+
+    try {
+      // Use proxy API to avoid CORS issues
+      let response: Response;
+      let blob: Blob;
+
+      try {
+        // Method 1: Use our proxy API
+        const proxyUrl = `/api/proxy-document?url=${encodeURIComponent(documentData.fileUrl)}`;
+        response = await fetch(proxyUrl);
+
+        if (!response.ok) {
+          throw new Error(
+            `Proxy API error: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        blob = await response.blob();
+      } catch (proxyError) {
+        console.log("Proxy API failed, trying direct fetch...", proxyError);
+
+        // Method 2: Direct fetch as fallback
+        try {
+          response = await fetch(documentData.fileUrl, {
+            mode: "cors",
+            headers: {
+              Accept: "application/pdf,image/*,*/*",
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          blob = await response.blob();
+        } catch (corsError) {
+          console.log(
+            "Direct fetch also failed, trying image canvas method...",
+            corsError,
+          );
+
+          // Method 3: For images, use canvas approach
+          if (
+            documentData.fileUrl.includes(".jpg") ||
+            documentData.fileUrl.includes(".jpeg") ||
+            documentData.fileUrl.includes(".png") ||
+            documentData.fileUrl.includes(".gif")
+          ) {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = documentData.fileUrl;
+            });
+
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx?.drawImage(img, 0, 0);
+
+            blob = (await new Promise((resolve) => {
+              canvas.toBlob(resolve, "image/png");
+            })) as Blob;
+          } else {
+            // For PDFs, open in new tab and suggest alternative
+            window.open(documentData.fileUrl, "_blank");
+            throw new Error(
+              "Unable to fetch document due to CORS restrictions. Document opened in new tab. Please download and use 'Upload & Read' button.",
+            );
+          }
+        }
+      }
+
+      // Determine the correct file type
+      let fileType = blob.type;
+
+      // If blob.type is generic (application/octet-stream), try to determine from filename
+      if (!fileType || fileType === "application/octet-stream") {
+        const fileName = documentData.fileName || "document";
+        if (fileName.toLowerCase().endsWith(".pdf")) {
+          fileType = "application/pdf";
+        } else if (
+          fileName.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/)
+        ) {
+          fileType = `image/${fileName.split(".").pop()?.toLowerCase().replace("jpg", "jpeg")}`;
+        } else {
+          // Default fallback
+          fileType = "application/pdf"; // Most documents are PDFs
+        }
+      }
+
+      console.log("🔍 File type detection:", {
+        blobType: blob.type,
+        fileName: documentData.fileName,
+        detectedType: fileType,
+      });
+
+      const file = new File([blob], documentData.fileName || "document", {
+        type: fileType,
+      });
+
+      setReadingProgress("Processing document with OCR...");
+
+      // Use the existing free document reading function
+      const result = await performFreeDocumentReading(file, documentType, 1);
+
+      setFreeReaderResult(result);
+      setReadingProgress("Document reading completed!");
+
+      // Show results for 3 seconds then clear progress
+      setTimeout(() => {
+        setReadingProgress("");
+      }, 3000);
+    } catch (error) {
+      console.error("Error reading document:", error);
+      setReadingProgress("");
+
+      // Provide helpful error message
+      if (error.message.includes("CORS")) {
+        alert(
+          `CORS Error: ${error.message}\n\nTip: Use the "Upload & Read" button as an alternative.`,
+        );
+      } else if (error.message.includes("Failed to fetch")) {
+        alert(
+          `Network Error: Unable to fetch document.\n\nThis might be due to CORS restrictions or network issues.\n\nTry using "Upload & Read" button instead.`,
+        );
+      } else {
+        alert(`Failed to read document: ${error.message}`);
+      }
+    } finally {
+      setIsReadingDocument(false);
+    }
+  };
 
   const handleAIVerification = async () => {
     console.log("Button clicked - starting verification...");
@@ -162,12 +312,31 @@ export default function AIDocumentVerification({
           </button>
 
           <button
+            onClick={handleReadExistingDocument}
+            disabled={isReadingDocument}
+            className="flex items-center space-x-2 rounded-lg bg-green-600 px-4 py-2 text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+            title="Read the uploaded document with OCR"
+          >
+            {isReadingDocument ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                <span>Reading...</span>
+              </>
+            ) : (
+              <>
+                <FiFileText className="h-4 w-4" />
+                <span>Read Document</span>
+              </>
+            )}
+          </button>
+
+          <button
             onClick={() => setShowFreeReader(true)}
-            className="flex items-center space-x-2 rounded-lg bg-green-600 px-4 py-2 text-white transition-colors hover:bg-green-700"
-            title="Free document reading with OCR"
+            className="flex items-center space-x-2 rounded-lg bg-gray-600 px-4 py-2 text-white transition-colors hover:bg-gray-700"
+            title="Upload and read a different document"
           >
             <FiFileText className="h-4 w-4" />
-            <span>Read Document</span>
+            <span>Upload & Read</span>
           </button>
         </div>
       </div>
@@ -183,6 +352,57 @@ export default function AIDocumentVerification({
           {hasResults ? "✅ True" : "❌ False"}
         </p>
       </div>
+
+      {/* Document Reading Progress */}
+      {readingProgress && (
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+          <div className="flex items-center space-x-2">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+            <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+              {readingProgress}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Document Reading Results */}
+      {freeReaderResult && (
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+          <h4 className="mb-2 text-lg font-semibold text-green-800 dark:text-green-200">
+            📄 Document Reading Results
+          </h4>
+          <div className="space-y-2 text-sm">
+            <p className="text-green-700 dark:text-green-300">
+              <strong>Confidence:</strong>{" "}
+              {freeReaderResult.confidence.toFixed(1)}%
+            </p>
+            <p className="text-green-700 dark:text-green-300">
+              <strong>Text Length:</strong>{" "}
+              {freeReaderResult.extractedText.text.length} characters
+            </p>
+            {freeReaderResult.issues.length > 0 && (
+              <div>
+                <strong className="text-green-700 dark:text-green-300">
+                  Issues Found:
+                </strong>
+                <ul className="ml-4 list-disc text-green-600 dark:text-green-400">
+                  {freeReaderResult.issues.map((issue, index) => (
+                    <li key={index}>{issue}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <details className="mt-2">
+              <summary className="cursor-pointer font-medium text-green-800 dark:text-green-200">
+                View Extracted Text
+              </summary>
+              <div className="mt-2 max-h-40 overflow-y-auto rounded bg-white p-2 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                {freeReaderResult.extractedText.text}
+              </div>
+            </details>
+          </div>
+        </div>
+      )}
 
       {console.log(
         "Rendering check - results:",
