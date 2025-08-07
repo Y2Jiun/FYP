@@ -160,7 +160,10 @@ export default function UserDashboard() {
       const savedPropertiesSnapshot = await getDocs(savedPropertiesQuery);
       const savedPropertiesCount = savedPropertiesSnapshot.size;
       console.log("Found saved properties count:", savedPropertiesCount);
-      console.log("Saved properties docs:", savedPropertiesSnapshot.docs.map(doc => doc.data()));
+      console.log(
+        "Saved properties docs:",
+        savedPropertiesSnapshot.docs.map((doc) => doc.data()),
+      );
 
       // Fetch user's notifications
       const notificationsQuery = query(

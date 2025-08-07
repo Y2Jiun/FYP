@@ -38,6 +38,7 @@ interface EnhancedVerificationWorkflowProps {
   onDocumentSelect: (document: PropertyDocument) => void;
   onFilterChange: (filter: string) => void;
   onStatusFilterChange: (status: string) => void;
+  onAIVerification?: (document: PropertyDocument) => void;
 }
 
 // Document categories with icons and colors
@@ -105,6 +106,7 @@ export default function EnhancedVerificationWorkflow({
   onDocumentSelect,
   onFilterChange,
   onStatusFilterChange,
+  onAIVerification,
 }: EnhancedVerificationWorkflowProps) {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -428,6 +430,14 @@ export default function EnhancedVerificationWorkflow({
                     >
                       Preview
                     </button>
+                    {onAIVerification && (
+                      <button
+                        onClick={() => onAIVerification(document)}
+                        className="rounded-lg bg-purple-600 px-3 py-1 text-xs font-medium text-white hover:bg-purple-700"
+                      >
+                        AI Verify
+                      </button>
+                    )}
                   </div>
                 </div>
               );

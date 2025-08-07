@@ -15,6 +15,7 @@ import {
 import AdminHeader from "@/components/Admin/AdminHeader";
 import DocumentPreviewModal from "@/components/Admin/DocumentPreviewModal";
 import EnhancedVerificationWorkflow from "@/components/Admin/EnhancedVerificationWorkflow";
+import AIDocumentVerification from "@/components/Admin/AIDocumentVerification";
 import {
   FiSearch,
   FiFilter,
@@ -97,6 +98,8 @@ export default function PropertyVerificationPage() {
     useState<PropertyDocument | null>(null);
   const [documentFilter, setDocumentFilter] = useState("all");
   const [documentStatusFilter, setDocumentStatusFilter] = useState("all");
+  const [showAIVerification, setShowAIVerification] = useState(false);
+  const [selectedDocumentForAI, setSelectedDocumentForAI] = useState<any>(null);
 
   useEffect(() => {
     fetchData();
@@ -177,6 +180,19 @@ export default function PropertyVerificationPage() {
   const handleDocumentSelect = (document: PropertyDocument) => {
     setSelectedDocumentForPreview(document);
     setShowDocumentPreview(true);
+  };
+
+  const handleAIVerification = (document: PropertyDocument) => {
+    setSelectedDocumentForAI(document);
+    setShowAIVerification(true);
+  };
+
+  const handleAIVerificationComplete = (result: any) => {
+    console.log("AI Verification Result:", result);
+    // Here you can integrate with your existing verification logic
+    // For now, we'll just close the modal
+    setShowAIVerification(false);
+    setSelectedDocumentForAI(null);
   };
 
   const handleDocumentDownload = (fileUrl: string, fileName: string) => {
@@ -456,6 +472,7 @@ export default function PropertyVerificationPage() {
                 onDocumentSelect={handleDocumentSelect}
                 onFilterChange={handleDocumentFilterChange}
                 onStatusFilterChange={handleDocumentStatusFilterChange}
+                onAIVerification={handleAIVerification}
               />
             )}
 
@@ -622,6 +639,37 @@ export default function PropertyVerificationPage() {
           onVerify={handleDocumentVerification}
           onDownload={handleDocumentDownload}
         />
+
+        {/* AI Document Verification Modal */}
+        {showAIVerification && selectedDocumentForAI && (
+          <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+            <div className="mx-4 max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  AI Document Verification
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowAIVerification(false);
+                    setSelectedDocumentForAI(null);
+                  }}
+                  className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                >
+                  <FiX className="h-6 w-6" />
+                </button>
+              </div>
+              <AIDocumentVerification
+                documentId={selectedDocumentForAI.documentId}
+                documentData={selectedDocumentForAI}
+                documentType={selectedDocumentForAI.documentType}
+                propertyData={properties.find(
+                  (p) => p.propertyId === selectedDocumentForAI.propertyId,
+                )}
+                onVerificationComplete={handleAIVerificationComplete}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
